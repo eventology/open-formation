@@ -1,0 +1,11 @@
+{
+  "name": "open-formation",
+  "version": "0.0.1",
+  "description": "A templating engine for building remote systems",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Chance Hudson",
+  "license": "MIT"
+}
