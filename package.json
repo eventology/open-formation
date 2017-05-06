@@ -1,11 +1,23 @@
 {
   "name": "open-formation",
   "version": "0.0.1",
-  "description": "A templating engine for building remote systems",
+  "description": "A templating engine for building infrastructure orchestration",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "bin": {
+    "of": "cli.js"
+  },
   "author": "Chance Hudson",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.49.0",
+    "cliff": "^0.1.10",
+    "colors": "^1.1.2",
+    "lodash": "^4.17.4",
+    "text-table": "^0.2.0",
+    "uuid": "^3.0.1",
+    "yargs": "^8.0.1"
+  }
 }

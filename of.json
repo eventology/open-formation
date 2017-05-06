@@ -1,0 +1,23 @@
+{
+  "of-machine": {
+    "type": "t2.nano",
+    "tags": {
+      "hello": "world"
+    },
+    "region": "us-east-2"
+  },
+  "of-machine2": {
+    "type": "t2.nano",
+    "tags": {
+      "hello": "world",
+      "Name": "test"
+    }
+  },
+  "of-machine3": {
+    "type": "t2.nano",
+    "tags": {
+      "hello": "world",
+      "Name": "test"
+    }
+  }
+}
