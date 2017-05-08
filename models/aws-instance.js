@@ -7,6 +7,7 @@ const {ssh, scp, urlToIp, cmd, tmpname} = require('./utils');
 const Volume = require('./volume');
 const path = require('path');
 const colors = require('colors');
+const chalk = require('chalk');
 const AWS = require('aws-sdk');
 _.defaults(AWS.config, {
   'region': process.env.AWS_REGION || 'us-east-1'
@@ -73,7 +74,7 @@ module.exports = class AWSInstance extends Instance {
 
   static create(options = {}) {
     _.defaults(options, {
-      'imageId': 'ami-80861296',
+      'imageName': 'ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-20170414',
       'MaxCount': 1,
       'MinCount': 1,
       'keyName': 'cosmunity',
@@ -87,16 +88,35 @@ module.exports = class AWSInstance extends Instance {
       }],
       'tags': {
       },
+      'name': '',
       'region': process.env.AWS_REGION || 'us-east-1'
     });
-    const params = this.Unmap(options);
-    delete params.region;
-    delete params.tags;
-    const ec2 = new AWS.EC2({
-      'region': options.region
-    });
-    return ec2.runInstances(params)
-      .promise()
+    return Promise.resolve()
+      .then(() => {
+        const imageName = options.imageName;
+        delete options.imageName;
+        if (!imageName) return options.imageId;
+        return this.imageIdByName(imageName, options.region);
+      })
+      .then(imageId => {
+        /**
+         * Some special options handling
+         *
+         * This whole method smells pretty bad
+         **/
+        options.imageId = imageId;
+        if (options.name) {
+          _.set(options, `tags.Name`, options.name);
+          delete options.name;
+        }
+        const params = this.Unmap(options);
+        delete params.region;
+        delete params.tags;
+        const ec2 = new AWS.EC2({
+          'region': options.region
+        });
+        return ec2.runInstances(params).promise();
+      })
       .then(res => {
         const instance = this.Map(_.get(res, 'Instances[0]', {}));
         instance.region = options.region;
@@ -122,6 +142,26 @@ module.exports = class AWSInstance extends Instance {
     return new AWS.EC2(_.defaults(config, {
       'region': this.region
     }));
+  }
+
+  static imageIdByName(name, region = 'us-east-1') {
+    return new AWS.EC2({region})
+      .describeImages({
+        'Filters': [
+          {
+            'Name': 'name',
+            'Values': [name]
+          }
+        ]
+      })
+      .promise()
+      .then(res => {
+        const images = res.Images;
+        if (images.length > 1) throw new Error(`Found multiple AMI's for ${name}`);
+        const imageId = _.get(res, 'Images[0].ImageId');
+        if (!imageId) throw new Error(`AMI not found for name ${name}`);
+        return imageId;
+      });
   }
 
   /**

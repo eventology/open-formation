@@ -1,20 +1,24 @@
 {
-  "of-machine": {
+  "__config__": {
     "type": "t2.nano",
+    "imageName": "ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-20170414",
+    "boot": "scripts/docker.sh"
+  },
+  "of-machine": {
     "tags": {
       "hello": "world"
     },
     "region": "us-east-2"
   },
-  "of-machine2": {
-    "type": "t2.nano",
+  "micro-of-machine": {
+    "type": "t2.micro",
     "tags": {
       "hello": "world",
       "Name": "test"
     }
   },
-  "of-machine3": {
-    "type": "t2.nano",
+  "small-of-machine": {
+    "type": "t2.small",
     "tags": {
       "hello": "world",
       "Name": "test"
