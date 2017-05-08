@@ -1,6 +1,9 @@
 #! /usr/bin/env node
-require('yargs')
-  .commandDir('cmds')
-  .demandCommand()
-  .help()
-  .argv;
+
+const vorpal = require('vorpal')();
+
+vorpal
+  .delimiter('open-formation$')
+  .show();
+
+require('./cmds')(vorpal);
