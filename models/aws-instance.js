@@ -6,7 +6,6 @@ const AWSElasticIp = require('./aws-elastic-ip');
 const {ssh, scp, urlToIp, cmd, tmpname} = require('./utils');
 const Volume = require('./volume');
 const path = require('path');
-const colors = require('colors');
 const chalk = require('chalk');
 const AWS = require('aws-sdk');
 _.defaults(AWS.config, {
@@ -32,7 +31,13 @@ module.exports = class AWSInstance extends Instance {
         const tags = _.keyBy(input.Tags, 'Key');
         return _.get(tags, 'Name.Value', '--none--');
       },
-      'type': 'InstanceType'
+      'type': 'InstanceType',
+      'tags': function(input) {
+        return _.chain(input.Tags)
+          .keyBy('Key')
+          .mapValues('Value')
+          .value();
+      }
     };
   }
 
@@ -77,7 +82,6 @@ module.exports = class AWSInstance extends Instance {
       'imageName': 'ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-20170414',
       'MaxCount': 1,
       'MinCount': 1,
-      'keyName': 'cosmunity',
       'type': 't2.micro',
       'BlockDeviceMappings': [{
         'DeviceName': '/dev/sda1',
@@ -126,15 +130,14 @@ module.exports = class AWSInstance extends Instance {
       .then(instance => instance.waitForRunning())
       .then(instance => {
         // Now we wait for 10 secs so we can actually shell in
-        return new Promise(instance => new Promise(r => setTimeout(() => r(instance), 10000)));
+        return new Promise(r => setTimeout(() => r(instance), 10000));
       })
       // If there is a block device at /dev/xvdf automatically mount it
       .then(instance => instance.cmd(`
         if [ -e /dev/xvdf ]; then
           sudo mkdir /data
           sudo mount /dev/xvdf /data
-        fi
-        `))
+        fi`))
       .then(instance => this.byId(instance.id));
   }
 

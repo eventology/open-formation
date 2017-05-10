@@ -6,10 +6,10 @@ const fs = require('fs');
 const path = require('path');
 const DNS = require('dns');
 const URL = require('url');
-const colors = require('colors');
 const uuid = require('uuid');
+const chalk = require('chalk');
+const NodeSSH = new require('node-ssh');
 
-const PRIVATE_KEY_PATH = path.join(__dirname, '../keys/cm.pem');
 const SSH_OPTS = `-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no`;
 
 /**
@@ -18,53 +18,28 @@ const SSH_OPTS = `-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no`;
  * @param {String|Array} command A single command, or an array of commands.
  * @returns {Array} Returns array containing results of commands
  **/
-function cmd(commands) {
+
+function cmd(_commands) {
   return Promise.resolve()
     .then(() => {
-      // Bind the options to the `execSync` call
-      // Use unary to allow it to accept 1 arg and ignore all others
-      const syncPromise = (...args) => Promise.resolve()
-          .then(() => execSync(...args));
-
-      const asyncPromise = (...args) => {
-        return new Promise((resolve, reject) => {
-          exec(...args, (err, stdout, stderr) => {
-            if (err) reject(err);
-            else resolve(stdout);
-          });
-        });
-      };
-
-      const executor = process.stdout.isTTY ? syncPromise : asyncPromise;
-      const promises = _.chain([commands])
+      const commands = _.chain([_commands])
         .flatten()
-      // Inherit stdio from current process so we can establish pseudo terminals
-      // if necessary
-        .map(command => executor(command, {
-          'stdio': 'inherit'
-        }))
+        .compact()
         .value();
-      if (_.isArray(promises)) return Promise.all(promises);
-      return promises;
+      return _.chain(commands)
+        .map(command => new Promise((resolve, reject) => {
+            exec(command, (err, stdout, stderr) => {
+              if (err) reject(err);
+              else resolve(stdout);
+            });
+          }))
+        .thru(arr => _.isArray(_commands) ? Promise.all(arr) : _.head(arr))
+        .value();
     });
 }
 
 function pwd() {
-  return _.trimEnd(execSync('pwd').toString(), `\n`);
-}
-
-function ping(hostname, keyPath, username) {
-  const testCmd = `ssh ${SSH_OPTS} -i ${keyPath} ${username}@${hostname} whoami 1>/dev/null 2>/dev/null && echo 0 || echo 1`;
-  return cmd(`
-    tries=0
-    while [ $(${testCmd}) -eq 1 ]; do
-      if [ $tries -eq 10 ]; then
-        exit 1
-      fi
-      tries=$((tries+1))
-      sleep 5
-    done
-    `);
+  return _.trimEnd(execSync('pwd'), '\n');
 }
 
 /**
@@ -73,35 +48,52 @@ function ping(hostname, keyPath, username) {
  * Multiple commands will be grouped in single quotes. Single quotes in commands
  * will be escaped automatically
  **/
-function ssh(hostname, commands, keyPath=PRIVATE_KEY_PATH, username='ubuntu') {
-  console.log(`Connecting to ${username}@${hostname}`.blue);
-  return ping(hostname, keyPath, username)
+function ssh(options = {}) {
+  const {hostname, username, keyPath, commands} = _.defaults(options, {
+    'hostname': '',
+    'username': 'ubuntu',
+    'keyPath': '',
+    'commands': ''
+  });
+  const name = `${username}@${hostname}`;
+  console.log(chalk.blue(`Connecting to ${name}`));
+
+  const _ssh = new NodeSSH();
+  const connect = () => _ssh.connect({
+    'host': hostname,
+    'username': username,
+    'privateKey': keyPath
+  });
+
+  return connect()
+    .catch(err => {
+      console.log(chalk.yellow('Error connecting to ${name}, retrying.'));
+      return connect();
+    })
     .then(() => {
-      // Base ssh command, -t creates a virtual terminal -i specifies keyfile path
-      const sshCmd = `ssh ${SSH_OPTS} -ti ${keyPath} ${username}@${hostname}`;
-
-      // Map commands into a single string joined by &&
-      const command = _([commands]).flatten().map(command => {
-        /**
-         * Escape single quotes in commands using this strategy
-         * https://stackoverflow.com/questions/1250079/how-to-escape-single-quotes-within-single-quoted-strings
-         *
-         * Example: echo 'string1';echo 'string2'
-         * Escaped: echo '"'"'string1'"'"';echo '"'"'string2'"'"'
-         *
-         * This command can now be used in single quotes safely
-         * > ssh user@remote 'echo '"'"'string1'"'"';echo '"'"'string2'"'"''
-         * string1
-         * string2
-         *
-         * This works because quotes without spaces are treated as a single string
-         * echo 'bash'"is"'fun' = bashisfun
-        **/
-        return command.replace(/\'/g, `'"'"'`);
-      }).join(';');
-
-      // Run `commands` on `hostname` as `username`
-      return cmd(`${sshCmd} '${command}'`);
+      const cmds = _.chain([commands])
+        .flatten(commands)
+        .map(v => _.trim(v))
+        .compact()
+        .value();
+      return _.reduce(cmds, (promise, _cmd) => {
+        return promise
+          .then(() => {
+            console.log(chalk.cyan(`${name}: ${_cmd}`));
+            return _ssh.execCommand(_cmd);
+          });
+      }, Promise.resolve());
+    })
+    .then(result => {
+      console.log(chalk.blue(`Disconnecting from ${name}`));
+      _ssh.dispose();
+      return _.get(result, 'stdout', result);
+    })
+    .catch(err => {
+      _ssh.dispose();
+      console.log(chalk.red(`Error in connection to ${name}.`));
+      console.log(err);
+      throw err;
     });
 }
 
@@ -111,13 +103,19 @@ function ssh(hostname, commands, keyPath=PRIVATE_KEY_PATH, username='ubuntu') {
  * Directories are supported
  **/
 function scp(options = {}) {
-  const {direction, hostname, localPath, remotePath, keyPath, username} = options;
-  const scpCmd = `scp ${SSH_OPTS} -i ${keyPath}`;
+  const {direction, hostname, localPath, remotePath, keyPath, username} = _.defaults(options, {
+    'hostname': '',
+    'username': 'ubuntu',
+    'keyPath': '',
+    'commands': ''
+  });
+  const keyClause = keyPath ? `-i ${keyPath}` : '';
+  const scpCmd = `scp ${SSH_OPTS} ${keyClause}`;
   const remoteUrl = `${username}@${hostname}:${remotePath}`;
   let command;
   if (direction) {
     // SCP to a remote machine (upload)
-    console.log(`Uploading ${localPath} to ${remoteUrl}`.blue);
+    // console.log(`Uploading ${localPath} to ${remoteUrl}`.blue);
     const stat = fs.statSync(localPath);
     if (!stat.isFile() && !stat.isDirectory()) {
       throw new Error(`Invalid localPath supplied: ${localPath}`);
@@ -125,27 +123,29 @@ function scp(options = {}) {
     command = `${scpCmd} ${stat.isDirectory() ? '-r' : ''} ${localPath} ${remoteUrl}`;
   } else {
     // SCP from a remote machine (download)
-    console.log(`Downloading ${remoteUrl} to ${localPath}`.blue);
+    // console.log(`Downloading ${remoteUrl} to ${localPath}`.blue);
     command = `${scpCmd} ${remoteUrl} ${localPath}`;
   }
   const silentCommand = `${command} 1>/dev/null 2>/dev/null`;
-  return ping(hostname, keyPath, username)
-    .then(() => cmd(silentCommand).catch(err => {
-        console.log('Received scp error, trying again...'.red);
-        return cmd(silentCommand);
-      }));
+  return cmd(silentCommand)
+    .catch(err => {
+      console.log('Received scp error, trying again...'.red);
+      return cmd(silentCommand);
+    });
 }
 
-scp.up = function(hostname, localPath, remotePath, keyPath=PRIVATE_KEY_PATH, username='ubuntu') {
-  return scp({
+scp.up = function(options = {}) {
+  return scp(_.defaults(options, {
     'direction': 1,
-    hostname, localPath, remotePath, keyPath, username});
+    'username': 'ubuntu'
+  }));
 };
 
-scp.down = function(hostname, remotePath, localPath, keyPath=PRIVATE_KEY_PATH, username='ubuntu') {
-  return scp({
+scp.down = function(options = {}) {
+  return scp(_.defaults(options, {
     'direction': 0,
-    hostname, localPath, remotePath, keyPath, username});
+    'username': 'ubuntu'
+  }));
 };
 
 function urlToIp(url) {
@@ -164,7 +164,7 @@ function urlToIp(url) {
 function read(path, encoding = 'utf8') {
   return Promise.resolve()
     .then(() => {
-      if (process.stdout.isTTY) return fs.readFileSync(path, encoding);
+      // if (process.stdout.isTTY) return fs.readFileSync(path, encoding);
       return new Promise((resolve, reject) => {
         fs.readFile(path, encoding, (err, data) => {
           if (err) reject(err);

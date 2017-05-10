@@ -3,7 +3,7 @@
 const Mappable = require('./mappable');
 const _ = require('lodash');
 const AWSElasticIp = require('./aws-elastic-ip');
-const {ssh, scp, urlToIp, cmd, tmpname} = require('./utils');
+const {ssh, scp, urlToIp, cmd, tmpname, pwd} = require('./utils');
 const Volume = require('./volume');
 const path = require('path');
 const colors = require('colors');
@@ -65,31 +65,50 @@ module.exports = class Instance extends Mappable {
     return this.findOne({id, url});
   }
 
-  runScript(scriptPath) {
-    const SCRIPT_PATH = `/home/ubuntu/${tmpname()}`;
-    const scriptsDir = path.join(__dirname, '..', 'scripts');
-    return scp.up(this.ip, scriptsDir, SCRIPT_PATH)
-      .then(() => ssh(this.ip, [
-        `mkdir ${SCRIPT_PATH}/tmp`,
-        `cd ${SCRIPT_PATH}/tmp`,
-        `sudo ${SCRIPT_PATH}/${scriptPath}`,
-        `sudo rm -rf ${SCRIPT_PATH}`
-      ]))
-      .then(() => this.constructor.byId(this.id));
+  keyPath() {
+    return path.join(pwd(), `${this.keyName}_${this.region}.pem`);
+  }
+
+  // runScript(scriptPath) {
+  //   const SCRIPT_PATH = `/home/ubuntu/${tmpname()}`;
+  //   const scriptsDir = path.join(__dirname, '..', 'scripts');
+  //   return scp.up(this.ip, scriptsDir, SCRIPT_PATH, this.keyPath())
+  //     .then(() => ssh(this.ip, [
+  //       `mkdir ${SCRIPT_PATH}/tmp`,
+  //       `cd ${SCRIPT_PATH}/tmp`,
+  //       `sudo ${SCRIPT_PATH}/${scriptPath}`,
+  //       `sudo rm -rf ${SCRIPT_PATH}`
+  //     ], this.keyPath()))
+  //     .then(() => this.constructor.byId(this.id));
+  // }
+
+  cmdSync(commands) {
+    return ssh({
+      'hostname': this.ip,
+      'keyPath': this.keyPath(),
+      'commands': commands});
+  }
+
+  ssh(...args) {
+    return this.cmd(...args);
   }
 
   cmd(commands) {
-    return ssh(this.ip, commands)
+    return ssh({
+      'hostname': this.ip,
+      'keyPath': this.keyPath(),
+      commands
+    })
       .then(() => this.constructor.byId(this.id));
   }
 
   upload(localPath, remotePath) {
-    return scp.up(this.ip, localPath, remotePath)
+    return scp.up(this.ip, localPath, remotePath, this.keyPath())
       .then(() => this.constructor.byId(this.id));
   }
 
   download(remotePath, localPath) {
-    return scp.down(this.ip, remotePath, localPath)
+    return scp.down(this.ip, remotePath, localPath, this.keyPath())
       .then(() => this.constructor.byId(this.id));
   }
 

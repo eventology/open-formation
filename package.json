@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-    "of": "cli.js"
+    "ofn": "cli.js"
   },
   "author": "Chance Hudson",
   "license": "MIT",
@@ -17,9 +17,10 @@
     "cliff": "^0.1.10",
     "colors": "^1.1.2",
     "lodash": "^4.17.4",
+    "node-ssh": "^4.2.2",
+    "prettyjson": "^1.2.1",
     "text-table": "^0.2.0",
     "uuid": "^3.0.1",
-    "vorpal": "^1.12.0",
-    "yargs": "^8.0.1"
+    "vorpal": "^1.12.0"
   }
 }
