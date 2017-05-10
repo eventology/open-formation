@@ -69,31 +69,7 @@ module.exports = class Instance extends Mappable {
     return path.join(pwd(), `${this.keyName}_${this.region}.pem`);
   }
 
-  // runScript(scriptPath) {
-  //   const SCRIPT_PATH = `/home/ubuntu/${tmpname()}`;
-  //   const scriptsDir = path.join(__dirname, '..', 'scripts');
-  //   return scp.up(this.ip, scriptsDir, SCRIPT_PATH, this.keyPath())
-  //     .then(() => ssh(this.ip, [
-  //       `mkdir ${SCRIPT_PATH}/tmp`,
-  //       `cd ${SCRIPT_PATH}/tmp`,
-  //       `sudo ${SCRIPT_PATH}/${scriptPath}`,
-  //       `sudo rm -rf ${SCRIPT_PATH}`
-  //     ], this.keyPath()))
-  //     .then(() => this.constructor.byId(this.id));
-  // }
-
-  cmdSync(commands) {
-    return ssh({
-      'hostname': this.ip,
-      'keyPath': this.keyPath(),
-      'commands': commands});
-  }
-
-  ssh(...args) {
-    return this.cmd(...args);
-  }
-
-  cmd(commands) {
+  ssh(commands) {
     return ssh({
       'hostname': this.ip,
       'keyPath': this.keyPath(),

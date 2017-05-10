@@ -99,7 +99,7 @@ module.exports = class Formation {
    * to register the machine in the swarm. The code is executed on the machines
    * via SSH.
    *
-   * docker swarm join --token <% this.manager.cmd('docker swarm join-token worker -q')) %> <% this.manager.ip %>:2377
+   * docker swarm join --token <% this.manager.ssh('docker swarm join-token worker -q')) %> <% this.manager.ip %>:2377
    *
    * The content between <% %> is evaluated as javascript with the current
    * instance this bound to the execution context. In the example above a remote

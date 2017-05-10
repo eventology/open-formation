@@ -133,7 +133,7 @@ module.exports = class AWSInstance extends Instance {
         return new Promise(r => setTimeout(() => r(instance), 10000));
       })
       // If there is a block device at /dev/xvdf automatically mount it
-      .then(instance => instance.cmd(`
+      .then(instance => instance.ssh(`
         if [ -e /dev/xvdf ]; then
           sudo mkdir /data
           sudo mount /dev/xvdf /data
