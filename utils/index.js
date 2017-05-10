@@ -59,17 +59,21 @@ function ssh(options = {}) {
   console.log(chalk.blue(`Connecting to ${name}`));
 
   const _ssh = new NodeSSH();
+  const maxCount = 5;
+  let count = 0;
   const connect = () => _ssh.connect({
     'host': hostname,
     'username': username,
     'privateKey': keyPath
-  });
+  })
+    .catch(err => {
+      while (++count <= maxCount) {
+        console.log(chalk.yellow(`Error connecting to ${name}, retrying. (${count} / ${maxCount})`));
+        return connect();
+      }
+    });
 
   return connect()
-    .catch(err => {
-      console.log(chalk.yellow('Error connecting to ${name}, retrying.'));
-      return connect();
-    })
     .then(() => {
       const cmds = _.chain([commands])
         .flatten(commands)
