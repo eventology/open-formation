@@ -3,8 +3,5 @@
   "node": true,
   "mocha": true,
   "quotmark": "single",
-  "varstmt": true,
-  "globals": {
-    "AWS": true
-  }
+  "varstmt": true
 }

@@ -8,6 +8,11 @@ const vm = require('vm');
 
 module.exports = class Formation {
 
+  /**
+   * Static constructor, returns a promise
+   *
+   * Cleanup needed, not sure if i want to keep aws resources separate
+   **/
   static load(path) {
     const formation = new Formation();
     return new Promise((rs, rj) => fs.readFile(path, (err, data) => {
@@ -48,6 +53,10 @@ module.exports = class Formation {
       });
   }
 
+  /**
+   * Provision the hardware resources
+   * Then boot the resources
+   **/
   deploy() {
     let count = 0;
     return Promise.all(_.map(this.machines, machine => {
@@ -63,29 +72,37 @@ module.exports = class Formation {
       });
   }
 
+  /**
+   * Run the default boot script on all machines in parallel
+   * Then run the machine specific boot scripts in a serial queue
+   **/
   boot() {
     if (!this.instances) throw new Error(`No instances loaded, run deploy first`);
     console.log(chalk.green(`Running "default" boot script in parallel on ${_.keys(this.instances).length} machines`));
     return Promise.all(_.map(this.instances, instance => {
-      return this.runScript(instance, 'default');
+      return this.runScript(instance, 'default')
+        .catch(err => console.log(chalk.yellow('No default boot script present.')));
     }))
       .then(() => {
         // Executing promises in a serial queue with 2 second delay between items
         // Boot order matters
-        return _.reduce(this.instances, (promise, instance, name) => {
-          return promise
-            .then(() => this.bootInstance(instance))
-            .then(() => new Promise(r => setTimeout(r, 2000)));
-        }, Promise.resolve());
+        return Promise.map(this.instances, (instance, name) => {
+          return new Promise(r => setTimeout(r, 2000))
+            .then(() => this.bootInstance(instance));
+        });
       });
   }
 
+  /**
+   * Boot an instance using javascript overlayed onto shell commands
+   * Promises are well supported
+   **/
   bootInstance(instance) {
     const scripts = this.machineScripts[instance.name];
-    return _.reduce(scripts, (promise, script) => {
+    return Promise.map(scripts, script => {
       console.log(chalk.green(`Running "${script} on instance ${instance.name}`));
       return this.runScript(instance, script);
-    }, Promise.resolve(instance));
+    });
   }
 
   /**
@@ -118,11 +135,14 @@ module.exports = class Formation {
         if (!script) throw new Error(`Unable to find script ${name}`);
         // Context is provided so the script can store and share variables
         const context = vm.createContext({
-          'i': instance,
+          'i': this.instances,
+          'c': instance,
           _,
-          'this': this
+          'console': console
         });
-        return Promise.all(_.map(script, line => this.evalCommand(line, context)));
+        return Promise.map(script, line => {
+          return this.evalCommand(line, context).log();
+        });
       })
       .then(evaledScript => instance.ssh(evaledScript))
       .catch(err => {
@@ -133,53 +153,48 @@ module.exports = class Formation {
       });
   }
 
+  /**
+   * Take a string and execute any contained javascript
+   *
+   * Any calls to the print function in the nested scripts output content to
+   * the original string
+   **/
   evalCommand(command, context) {
-      if (!_.isString(command)) return Promise.reject(new Error(`Invalid command ${command}`));
-      const regex = /<%.*?%>/;
-      // Regex.exec returns null on no matches
-      const matches = regex.exec(command) || [];
+    if (!_.isString(command)) return Promise.reject(new Error(`Invalid command ${command}`));
+    const regex = _.clone(/<%.*?%>/g);
+    // Regex.exec returns null on no matches
+    const matches = [];
+    while (1) {
+      const match = regex.exec(command);
+      if (match === null) break;
+      matches.push(_.head(match));
+    }
+    // Execute all of the found commands in the v8 vm and return promises
+    if (!vm.isContext(context)) return Promise.reject(new Error('A vm context must be suppled to evalCommand'));
+    // History is accessible as a global in the execution context
+    // it stores the previous command results
+    let replacedCommand = _.clone(command);
+    return Promise.map(matches, js => {
+      const output = [];
+      context.print = function (value) {
+        output.push(_.get(value, 'then') ? value : Promise.resolve(value));
+      };
+      const result = vm.runInContext(_.trim(_.clone(js), '<%>'), context);
+      const promise = _.get(result, 'then') ? result : Promise.resolve(result);
 
-      // Execute all of the found commands in the v8 vm and return promises
-      if (!vm.isContext(context)) throw new Error('A vm context must be suppled to evalCommand');
-      // History is accessible as a global in the execution context
-      // it stores the previous command results
-      context.history = [];
-
-      const promises = _.map(matches, js => {
-        return Promise.resolve()
-          .then(() => {
-            const output = [];
-            context.print = function (...args) {
-              output.push(..._.map(args, arg => Promise.resolve().then(() => arg)));
-            };
-            const out = vm.runInContext(_.trim(js, '<%>'), context);
-            context.print = _.noop;
-
-            // Wait for any promise output from the vm to resolve
-            output.push(Promise.resolve().then(() => out));
-            return Promise.all(output)
-              // Then get rid of it
-              .then(results => results.slice(0, -1));
-          })
-          .then(outputs => console.log(outputs) && outputs)
-          .then(outputs => _(outputs).compact().join(' '));
-      });
-      // A part is a part of the total command.
-      // There can be multiple <% %> statements in a single command
-      // They are evaluated left to right
-      return Promise.all(promises)
+      // Wait for any promise output from the vm to resolve
+      // output.push(Promise.resolve().then(() => out));
+      return promise
+        .then(() => context.print = _.noop)
+        .then(() => Promise.all(output))
         .then(parts => {
-          // Take the execution result and put it in place of the original
-          // <% manager.ip %> turns into 32.40.172.48
-          // You can put javascript logic into shell scripts to control
-          // variables such as network addresses during deployment
-          return _(parts).reduce((_command, part, index) => {
-            console.log(part);
-            let replacement = '';
-            if (_.isString(part) || _.isNumber(part)) replacement = part;
-            context.history.push(part);
-            return _.replace(_command, matches[index], replacement);
-          }, command);
+          const replacement = _(parts)
+            .filter(p => _.isString(p) || _.isNumber(p))
+            .join(' ');
+          console.log(chalk.magenta(replacement));
+          replacedCommand = _.replace(replacedCommand, js, replacement);
         });
+    })
+      .then(() => replacedCommand);
   }
 };

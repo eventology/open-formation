@@ -1,6 +1,6 @@
 {
   "config": {
-    "type": "t2.nano",
+    "type": "t2.small",
     "imageName": "ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-20170414",
     "keyName": "cosmunity"
   },
@@ -16,7 +16,7 @@
       "sudo usermod -aG docker ubuntu"
     ],
     "joinSwarm": [
-      "docker swarm join --token <% print(this.manager.ssh('docker swarm join-token worker -q')) %> <% print(this.manager.ip) %>:2377",
+      "docker swarm join --token <% print(i.manager.ssh('docker swarm join-token worker -q')) %> <% print(i.manager.ip) %>:2377",
       "sleep 3"
     ],
     "createSwarm": [
@@ -24,10 +24,10 @@
       "sleep 3"
     ],
     "swarmLabels": [
-      "<% nodeIdCommand = `docker info | grep NodeID | awk '{print $2}'` %>",
-      "<% labels = _.reduce(i.tags, (c, v, k) => `--label-add ${k}=${v} ${c}`, '') %>",
-      "<% i.ssh(nodeIdCommand).then(id => nodeId = id) %>",
-      "<% this.manager.ssh(`docker node update ${nodeId} ${labels}`) %>"
+      "<% nodeIdCommand = `docker info | grep NodeID | awk '{print $2}' | tr '\\n' '\\0'` %>",
+      "<% labels = _.reduce(c.tags, (c, v, k) => `--label-add ${k}=${v} ${c}`, '') %>",
+      "<% c.ssh(nodeIdCommand).then(id => nodeId = id) %>",
+      "<% i.manager.ssh(`docker node update ${nodeId} ${labels}`) %>"
     ]
   },
   "machines": {

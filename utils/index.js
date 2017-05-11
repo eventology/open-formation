@@ -20,22 +20,20 @@ const SSH_OPTS = `-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no`;
  **/
 
 function cmd(_commands) {
-  return Promise.resolve()
-    .then(() => {
-      const commands = _.chain([_commands])
-        .flatten()
-        .compact()
-        .value();
-      return _.chain(commands)
-        .map(command => new Promise((resolve, reject) => {
-            exec(command, (err, stdout, stderr) => {
-              if (err) reject(err);
-              else resolve(stdout);
-            });
-          }))
-        .thru(arr => _.isArray(_commands) ? Promise.all(arr) : _.head(arr))
-        .value();
+  const commands = _.chain([_commands])
+    .flatten()
+    .compact()
+    .value();
+  return Promise.map(commands, command => {
+    return new Promise((resolve, reject) => {
+      exec(command, (err, stdout, stderr) => {
+        console.log(chalk.yellow(stderr));
+        if (err) reject(err);
+        else resolve(stdout);
+      });
     });
+  })
+    .then(results => _.isArray(_commands) ? results : _.head(results));
 }
 
 function pwd() {
@@ -67,31 +65,28 @@ function ssh(options = {}) {
     'privateKey': keyPath
   })
     .catch(err => {
-      while (++count <= maxCount) {
-        console.log(chalk.yellow(`Error connecting to ${name}, retrying. (${count} / ${maxCount})`));
-        return connect();
-      }
+      if (count++ > maxCount) throw err;
+      console.log(chalk.yellow(`Error connecting to ${name}, retrying. (${count} / ${maxCount})`));
+      return new Promise(r => setTimeout(r, 5000))
+        .then(() => connect());
     });
 
+  const cmds = _.chain([commands])
+    .flatten(commands)
+    .map(v => _.trim(v))
+    .compact()
+    .value();
   return connect()
-    .then(() => {
-      const cmds = _.chain([commands])
-        .flatten(commands)
-        .map(v => _.trim(v))
-        .compact()
-        .value();
-      return _.reduce(cmds, (promise, _cmd) => {
-        return promise
-          .then(() => {
-            console.log(chalk.cyan(`${name}: ${_cmd}`));
-            return _ssh.execCommand(_cmd);
-          });
-      }, Promise.resolve());
-    })
+    // Execute cmds in a serial queued
+    .then(() => Promise.map(cmds, _cmd => {
+        console.log(chalk.cyan(`${name}: ${_cmd}`));
+        return _ssh.execCommand(_cmd);
+      }))
     .then(result => {
       console.log(chalk.blue(`Disconnecting from ${name}`));
       _ssh.dispose();
-      return _.get(result, 'stdout', result);
+      if (!_.isArray(commands)) return result.pop().stdout;
+      return _.map(result, 'stdout');
     })
     .catch(err => {
       _ssh.dispose();
@@ -104,7 +99,7 @@ function ssh(options = {}) {
 /**
  * SFTP a local file to or from a remote machine
  *
- * Directories are supported
+ * Switch this to use Promise.map
  **/
 function scp(options = {}) {
   const {direction, hostname, localPath, remotePath, keyPath, username} = _.defaults(options, {

@@ -4,7 +4,7 @@ const {cmd, pwd} = require('../utils');
 const fs = require('fs');
 const _ = require('lodash');
 const path = require('path');
-const {AWSInstance, Formation} = require('../models')();
+const {TestInstance, AWSInstance, Formation} = require('../models')();
 const chalk = require('chalk');
 const {clearScreen} = require('ansi-escapes');
 const prettyjson = require('prettyjson');
@@ -89,11 +89,20 @@ module.exports = vorpal => {
           vorpal.show();
         })
         .catch(err => {
+          console.log(chalk.red('Uncaught error'));
           console.log(err);
           vorpal.show();
         });
     });
 
+
+  vorpal
+    .command('start <instanceId>')
+    .description('Start a stopped instance by id')
+    .action(function (args) {
+      return AWSInstance.byId(args.instanceId)
+        .then(instance => instance.start());
+    });
 
   vorpal
     .command('rm <instanceId>')
@@ -148,8 +157,7 @@ module.exports = vorpal => {
     .command('test')
     .description('Test command')
     .action(function (args) {
-      const f = new Formation();
-      return f.evalCommand('<% new Promise(r => setTimeout(r, 5000)) %>');
+      return TestInstance.load().log();
     });
 };
 
