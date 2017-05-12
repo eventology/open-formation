@@ -3,7 +3,7 @@
 const Instance = require('./instance');
 const _ = require('lodash');
 const AWSElasticIp = require('./aws-elastic-ip');
-const {ssh, scp, urlToIp, cmd, tmpname} = require('./utils');
+const {ssh, scp, urlToIp, cmd, tmpname} = require('../utils');
 const Volume = require('./volume');
 const path = require('path');
 const chalk = require('chalk');

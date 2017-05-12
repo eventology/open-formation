@@ -3,7 +3,7 @@
 const Mappable = require('./mappable');
 const _ = require('lodash');
 const AWSElasticIp = require('./aws-elastic-ip');
-const {ssh, scp, urlToIp, cmd, tmpname, pwd} = require('./utils');
+const {ssh, scp, urlToIp, cmd, tmpname, pwd} = require('../utils');
 const Volume = require('./volume');
 const path = require('path');
 

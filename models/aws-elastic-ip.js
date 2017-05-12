@@ -3,7 +3,7 @@
 const Mappable = require('./mappable');
 const _ = require('lodash');
 const dns = require('dns');
-const {urlToIp} = require('./utils');
+const {urlToIp} = require('../utils');
 
 module.exports = class ElasticIp extends Mappable {
 

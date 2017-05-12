@@ -2,7 +2,7 @@
 
 const Instance = require('./instance');
 const _ = require('lodash');
-const {ssh, scp, urlToIp, cmd, tmpname} = require('./utils');
+const {ssh, scp, urlToIp, cmd, tmpname} = require('../utils');
 const path = require('path');
 const chalk = require('chalk');
 const http = require('http');
