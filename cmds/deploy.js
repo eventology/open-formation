@@ -1,53 +1,45 @@
 'use strict';
 
-const {cmd, pwd} = require('../utils');
+const {pwd} = require('../utils');
 const fs = require('fs');
 const path = require('path');
 const _ = require('lodash');
-const {AWSInstance} = require('../models')();
+const {Formation, AWSInstance} = require('../models');
+const chalk = require('chalk');
 
-const service = process.env.OF_SERVICE || 'AWS';
-
-// exports.command = `deploy [template] [region] [service]`;
-// exports.desc = 'Deploy a formation template.';
-// exports.builder = {
-//   'template': {
-//     'default': 'of.json'
-//   },
-//   'region': {
-//     'default': 'us-east-1'
-//   },
-//   'service': {
-//     'default': `${service}`
-//   }
-// };
-
-module.exports = vorpal => {
+module.exports = (vorpal, print) => {
 
   vorpal
-    .command('deploy [template]')
+    .command('deploy')
     .description('Deploy an open formation template')
+    .option('-t, --template <path>', `Template to deploy relative to cwd. Defaults to ./${process.env.DEFAULT_FORMATION}`)
     .action(function (args) {
-      const template = pwd();
-      console.log(template);
-      return Promise.resolve('test');
+      const template = path.join(pwd(), args.options.template || process.env.DEFAULT_FORMATION);
+      return Formation.load(template)
+        .then(formation => {
+          console.log(chalk.magenta(`Deploying ${formation.machines.length} instances`));
+          print(formation.machines, ['name', 'type', 'region', 'keyName']);
+          return this.prompt({
+            'type': 'confirm',
+            'name': 'continue',
+            'default': false,
+            'message': `Continue?`
+          }).then(result => {
+            if (!result.continue) return this.log('Deployment aborted.');
+            this.log(`Deploying instances...`);
+            return formation.deploy()
+              .then(() => formation.boot());
+          });
+        })
+        .then(() => {
+          // console.log(created);
+          vorpal.show();
+        })
+        .catch(err => {
+          console.log(chalk.red('Uncaught error'));
+          console.log(err);
+          vorpal.show();
+        });
     });
 
 };
-
-// exports.handler = function(argv) {
-//   const contents = fs.readFileSync(path.join(pwd(), argv.template), 'utf8');
-//   const parsed = JSON.parse(contents);
-//   const promises = _.map(parsed, (value, key) => {
-//     if (/^__*__$/.test(key)) return;
-//     // Use the key as the instance name
-//     _.set(value, 'tags.Name', key);
-//     // Then create the instance in the region
-//     return AWSInstance.create(_.assign({
-//       'region': argv.region
-//     }, value));
-//   });
-//   // Wait for the promises and log result for now
-//   return Promise.all(_.compact(promises))
-//     .then(instances => console.log(instances));
-// };

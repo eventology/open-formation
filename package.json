@@ -19,6 +19,7 @@
     "dockerode": "^2.4.3",
     "lodash": "^4.17.4",
     "node-ssh": "^4.2.2",
+    "not-index": "^1.0.0",
     "prettyjson": "^1.2.1",
     "text-table": "^0.2.0",
     "uuid": "^3.0.1",

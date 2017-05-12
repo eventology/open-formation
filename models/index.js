@@ -1,17 +1,10 @@
 'use strict';
 
-const fs = require('fs');
 const _ = require('lodash');
-const path = require('path');
+const requires = require('not-index')(__dirname);
 
-module.exports = () => {
-  const models = {};
-  const files = fs.readdirSync(__dirname);
-  const fileRegex = /^(?!index)[a-z\-]+\.js$/;
-  _.forEach(files, file => {
-    if (!fileRegex.test(file)) return;
-    const _class = require(path.join(__dirname, file));
-    models[_class.name] = _class;
+module.exports = _.reduce(requires, (_classes, _class) => {
+  return _.assign(_classes, {
+    [_class.name]: _class
   });
-  return models;
-};
+}, {});
