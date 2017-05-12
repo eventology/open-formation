@@ -12,6 +12,9 @@ module.exports = class Formation {
    * Static constructor, returns a promise
    *
    * Cleanup needed, not sure if i want to keep aws resources separate
+   *
+   * TODO: Refactor formation.json parsing, add script phases during machine
+   * boot
    **/
   static load(path) {
     const formation = new Formation();

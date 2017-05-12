@@ -12,6 +12,14 @@ _.defaults(AWS.config, {
   'region': process.env.AWS_REGION || 'us-east-1'
 });
 
+// Sanity check
+if (!AWS.config.credentials) {
+  console.log(chalk.red('Error:'));
+  console.log(`Unable to find AWS credentials. Ensure the AWS CLI is installed and credentials are accessible at ~/.aws`);
+  console.log(chalk.red('Exiting'));
+  process.exit();
+}
+
 module.exports = class AWSInstance extends Instance {
 
   static mapping() {

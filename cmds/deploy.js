@@ -30,7 +30,7 @@ module.exports = (vorpal, print) => {
             return formation.deploy()
               .then(() => formation.boot())
               .log(() => console.log(chalk.magenta(`Successfully deployed ${_.keys(formation.instances).length} instances`)))
-              .then(() => print(_.values(formation.instances), ['id', 'name', 'ip', 'type']));
+              .then(() => print(_.values(formation.instances), ['id', 'name', 'ip', 'type', 'region']));
           });
         })
         .then(() => vorpal.show())
