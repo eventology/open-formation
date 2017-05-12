@@ -37,4 +37,4 @@ Promise.map = Promise.map || function (objects = [], iteratee = (obj, key) => ob
   }, Promise.resolve()).then(() => results);
 };
 
-module.exports = require('./utils');
+module.exports = require('./models');

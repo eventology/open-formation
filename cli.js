@@ -18,4 +18,5 @@ require('./cmds')(vorpal);
  **/
 vorpal
   .delimiter('open-formation$')
-  .show();
+  .show()
+  .parse(process.argv);
