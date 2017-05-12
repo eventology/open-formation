@@ -81,12 +81,22 @@ module.exports = class Instance extends Mappable {
   }
 
   upload(localPath, remotePath) {
-    return scp.up(this.ip, localPath, remotePath, this.keyPath())
+    return scp.up({
+      'host': this.ip,
+      'privateKey': this.keyPath(),
+      localPath,
+      remotePath
+    })
       .then(() => this.constructor.byId(this.id));
   }
 
   download(remotePath, localPath) {
-    return scp.down(this.ip, remotePath, localPath, this.keyPath())
+    return scp.down({
+      'host': this.ip,
+      'privateKey': this.keyPath(),
+      localPath,
+      remotePath
+    })
       .then(() => this.constructor.byId(this.id));
   }
 

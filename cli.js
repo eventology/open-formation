@@ -3,7 +3,9 @@
 const vorpal = require('vorpal')();
 const _ = require('lodash');
 
-// Load the polyfills
+/**
+ * Load the polyfills
+ **/
 require('./index');
 
 /**

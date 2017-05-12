@@ -101,7 +101,7 @@ module.exports = class AWSInstance extends Instance {
       }],
       'tags': {
       },
-      'name': '',
+      'name': 'aws-formation',
       'region': process.env.AWS_REGION || 'us-east-1'
     });
     return Promise.resolve()
@@ -136,8 +136,8 @@ module.exports = class AWSInstance extends Instance {
         return instance;
       })
       .log(instance => console.log(chalk.magenta(`${instance.type} instance ${instance.id} created in ${instance.region}`)))
-      .then(instance => instance.setTags(options.tags))
       .then(instance => instance.waitForRunning())
+      .then(instance => instance.setTags(options.tags))
       .then(instance => {
         // Now we wait for 10 secs so we can actually shell in
         return new Promise(r => setTimeout(() => r(instance), 5000));

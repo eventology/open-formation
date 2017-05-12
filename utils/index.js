@@ -40,6 +40,30 @@ function pwd() {
   return _.trimEnd(execSync('pwd'), '\n');
 }
 
+function connect(options = {}) {
+  const _ssh = new NodeSSH();
+  const maxCount = 5;
+  let count = 0;
+  const name = `${options.username}@${options.host}`;
+  console.log(chalk.blue(`Connecting to ${name}`));
+  const _connect = () => _ssh.connect(options)
+    .catch(err => {
+      if (++count > maxCount) throw err;
+      console.log(chalk.yellow(`Error connecting to ${name}, retrying. (${count} / ${maxCount})`));
+      return new Promise(r => setTimeout(r, 5000))
+        .then(() => _connect());
+    })
+    .then(() => _ssh);
+  return _connect();
+}
+
+function disconnect(_ssh = {}) {
+  if (!_.isFunction(_ssh.dispose)) throw new Error('Invalid ssh handle supplied');
+  const name = `${_.get(_ssh, 'connection.config.username')}@${_.get(_ssh, 'connection.config.host')}`;
+  console.log(chalk.blue(`Disconnecting from ${name}`));
+  return _ssh.dispose();
+}
+
 /**
  * Run 1 or more commands on a remote machine
  *
@@ -54,7 +78,6 @@ function ssh(options = {}) {
     'commands': ''
   });
   const name = `${username}@${hostname}`;
-  console.log(chalk.blue(`Connecting to ${name}`));
 
   const cmds = _.chain([commands])
     .flatten(commands)
@@ -63,37 +86,29 @@ function ssh(options = {}) {
     .value();
   if (!cmds.length) return Promise.resolve('');
 
-  const _ssh = new NodeSSH();
-  const maxCount = 5;
-  let count = 0;
-  const connect = () => _ssh.connect({
+  let _ssh;
+  return connect({
     'host': hostname,
     'username': username,
     'privateKey': keyPath
   })
-    .catch(err => {
-      if (count++ > maxCount) throw err;
-      console.log(chalk.yellow(`Error connecting to ${name}, retrying. (${count} / ${maxCount})`));
-      return new Promise(r => setTimeout(r, 5000))
-        .then(() => connect());
-    });
-
-  return connect()
     // Execute cmds in a serial queued
-    .then(() => Promise.map(cmds, _cmd => {
+    .then(__ssh => {
+      _ssh = __ssh;
+      return Promise.map(cmds, _cmd => {
         console.log(chalk.cyan(`${name}: ${_cmd}`));
         return _ssh.execCommand(_cmd);
-      }))
+      });
+    })
     .then(result => {
-      console.log(chalk.blue(`Disconnecting from ${name}`));
-      _ssh.dispose();
+      disconnect(_ssh);
       if (!_.isArray(commands)) return result.pop().stdout;
       return _.map(result, 'stdout');
     })
     .catch(err => {
-      _ssh.dispose();
       console.log(chalk.red(`Error in connection to ${name}.`));
       console.log(err);
+      disconnect(_ssh);
       throw err;
     });
 }
@@ -104,48 +119,48 @@ function ssh(options = {}) {
  * Switch this to use Promise.map
  **/
 function scp(options = {}) {
-  const {direction, hostname, localPath, remotePath, keyPath, username} = _.defaults(options, {
-    'hostname': '',
+  const {direction, host, localPath, remotePath, privateKey, username} = _.defaults(options, {
+    'host': '',
     'username': 'ubuntu',
     'keyPath': '',
     'commands': ''
   });
-  const keyClause = keyPath ? `-i ${keyPath}` : '';
-  const scpCmd = `scp ${SSH_OPTS} ${keyClause}`;
-  const remoteUrl = `${username}@${hostname}:${remotePath}`;
-  let command;
-  if (direction) {
-    // SCP to a remote machine (upload)
-    // console.log(`Uploading ${localPath} to ${remoteUrl}`.blue);
-    const stat = fs.statSync(localPath);
-    if (!stat.isFile() && !stat.isDirectory()) {
-      throw new Error(`Invalid localPath supplied: ${localPath}`);
-    }
-    command = `${scpCmd} ${stat.isDirectory() ? '-r' : ''} ${localPath} ${remoteUrl}`;
-  } else {
-    // SCP from a remote machine (download)
-    // console.log(`Downloading ${remoteUrl} to ${localPath}`.blue);
-    command = `${scpCmd} ${remoteUrl} ${localPath}`;
-  }
-  const silentCommand = `${command} 1>/dev/null 2>/dev/null`;
-  return cmd(silentCommand)
+  let _ssh;
+  return connect({host, username, privateKey})
+    .then(__ssh => {
+      _ssh = __ssh;
+      if (direction) {
+        // Uploading to a remote machine
+        const stat = fs.statSync(localPath);
+        if (!stat.isFile()) {
+          throw new Error(`Invalid localPath supplied: ${localPath}. Directories are not supported.`);
+        }
+        return _ssh.putFile(localPath, remotePath);
+      } else {
+        return _ssh.getFile(localPath, remotePath);
+      }
+    })
+    .then(result => {
+      disconnect(_ssh);
+      return result;
+    })
     .catch(err => {
-      console.log('Received scp error, trying again...'.red);
-      return cmd(silentCommand);
+      console.log(chalk.red(`Error in SCP operation.`));
+      console.log(err);
+      disconnect(_ssh);
+      throw err;
     });
 }
 
 scp.up = function(options = {}) {
-  return scp(_.defaults(options, {
-    'direction': 1,
-    'username': 'ubuntu'
+  return scp(_.assign(options, {
+    'direction': 1
   }));
 };
 
 scp.down = function(options = {}) {
-  return scp(_.defaults(options, {
-    'direction': 0,
-    'username': 'ubuntu'
+  return scp(_.assign(options, {
+    'direction': 0
   }));
 };
 

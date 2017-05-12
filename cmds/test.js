@@ -1,6 +1,6 @@
 'use strict';
 
-const {TestInstance, AWSInstance, Formation} = require('../models');
+const {AWSInstance} = require('../models');
 
 module.exports = vorpal => {
 
@@ -8,7 +8,6 @@ module.exports = vorpal => {
     .command('test')
     .description('Test command')
     .action(function (args) {
-      return TestInstance.load().log();
     });
 
 };
