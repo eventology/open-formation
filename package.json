@@ -1,8 +1,8 @@
 {
   "name": "@cosmunity/open-formation",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A templating engine for building infrastructure orchestration",
-  "main": "utils/index.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
