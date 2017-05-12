@@ -69,13 +69,16 @@ module.exports = class Instance extends Mappable {
     return path.join(pwd(), `${this.keyName}_${this.region}.pem`);
   }
 
-  ssh(commands) {
+  ssh(commands, results = false) {
     return ssh({
       'hostname': this.ip,
       'keyPath': this.keyPath(),
       commands
     })
-      .then(() => this.constructor.byId(this.id));
+      .then(_results => {
+        if (results) return _results;
+        return this.constructor.byId(this.id);
+      });
   }
 
   upload(localPath, remotePath) {

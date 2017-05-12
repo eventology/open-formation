@@ -49,7 +49,8 @@ module.exports = class AWSInstance extends Instance {
     const regions = [
       'us-east-1',
       'us-east-2',
-      'us-west-1'
+      'us-west-1',
+      'us-west-2'
     ];
     const promises = _.chain(regions)
       .map(region => new AWS.EC2({region}))
@@ -126,11 +127,12 @@ module.exports = class AWSInstance extends Instance {
         instance.region = options.region;
         return instance;
       })
+      .log(instance => console.log(chalk.magenta(`${instance.type} instance ${instance.id} created in ${instance.region}`)))
       .then(instance => instance.setTags(options.tags))
       .then(instance => instance.waitForRunning())
       .then(instance => {
         // Now we wait for 10 secs so we can actually shell in
-        return new Promise(r => setTimeout(() => r(instance), 10000));
+        return new Promise(r => setTimeout(() => r(instance), 5000));
       })
       // If there is a block device at /dev/xvdf automatically mount it
       .then(instance => instance.ssh(`

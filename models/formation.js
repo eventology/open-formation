@@ -84,12 +84,9 @@ module.exports = class Formation {
         .catch(err => console.log(chalk.yellow('No default boot script present.')));
     }))
       .then(() => {
-        // Executing promises in a serial queue with 2 second delay between items
+        // Executing promises in a serial queue
         // Boot order matters
-        return Promise.map(this.instances, (instance, name) => {
-          return new Promise(r => setTimeout(r, 2000))
-            .then(() => this.bootInstance(instance));
-        });
+        return Promise.map(this.instances, instance => this.bootInstance(instance));
       });
   }
 
@@ -99,8 +96,8 @@ module.exports = class Formation {
    **/
   bootInstance(instance) {
     const scripts = this.machineScripts[instance.name];
-    return Promise.map(scripts, script => {
-      console.log(chalk.green(`Running "${script} on instance ${instance.name}`));
+    return Promise.map(scripts, (script, index) => {
+      console.log(chalk.green(`Running "${script}" on instance "${instance.name}" ( ${index + 1} / ${scripts.length} )`));
       return this.runScript(instance, script);
     });
   }
@@ -140,9 +137,7 @@ module.exports = class Formation {
           _,
           'console': console
         });
-        return Promise.map(script, line => {
-          return this.evalCommand(line, context).log();
-        });
+        return Promise.map(script, line => this.evalCommand(line, context));
       })
       .then(evaledScript => instance.ssh(evaledScript))
       .catch(err => {
@@ -174,24 +169,28 @@ module.exports = class Formation {
     // History is accessible as a global in the execution context
     // it stores the previous command results
     let replacedCommand = _.clone(command);
+    context.wait = time => new Promise(r => setTimeout(r, time));
     return Promise.map(matches, js => {
       const output = [];
       context.print = function (value) {
         output.push(_.get(value, 'then') ? value : Promise.resolve(value));
       };
-      const result = vm.runInContext(_.trim(_.clone(js), '<%>'), context);
+      const trimmedCommand = _.trim(_.clone(js), '<%>');
+      const result = vm.runInContext(trimmedCommand, context);
       const promise = _.get(result, 'then') ? result : Promise.resolve(result);
 
       // Wait for any promise output from the vm to resolve
       // output.push(Promise.resolve().then(() => out));
       return promise
+        // Reset the print function in the vm context
         .then(() => context.print = _.noop)
+        // Wrap the outputs
         .then(() => Promise.all(output))
+        // Replace command parts if necessary
         .then(parts => {
           const replacement = _(parts)
             .filter(p => _.isString(p) || _.isNumber(p))
             .join(' ');
-          console.log(chalk.magenta(replacement));
           replacedCommand = _.replace(replacedCommand, js, replacement);
         });
     })

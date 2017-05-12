@@ -28,11 +28,11 @@ module.exports = (vorpal, print) => {
             if (!result.continue) return this.log('Deployment aborted.');
             this.log(`Deploying instances...`);
             return formation.deploy()
-              .then(() => formation.boot());
+              .then(() => formation.boot())
+              .then(() => print(formation.instances, ['id', 'name', 'ip', 'type']));
           });
         })
         .then(() => {
-          // console.log(created);
           vorpal.show();
         })
         .catch(err => {

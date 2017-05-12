@@ -56,6 +56,13 @@ function ssh(options = {}) {
   const name = `${username}@${hostname}`;
   console.log(chalk.blue(`Connecting to ${name}`));
 
+  const cmds = _.chain([commands])
+    .flatten(commands)
+    .map(v => _.trim(v))
+    .compact()
+    .value();
+  if (!cmds.length) return Promise.resolve('');
+
   const _ssh = new NodeSSH();
   const maxCount = 5;
   let count = 0;
@@ -71,11 +78,6 @@ function ssh(options = {}) {
         .then(() => connect());
     });
 
-  const cmds = _.chain([commands])
-    .flatten(commands)
-    .map(v => _.trim(v))
-    .compact()
-    .value();
   return connect()
     // Execute cmds in a serial queued
     .then(() => Promise.map(cmds, _cmd => {
