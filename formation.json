@@ -38,32 +38,32 @@
         "createSwarm"
       ]
     },
-    "worker1": {
-      "__boot__": [
-        "joinSwarm"
-      ],
-      "tags": {
-        "backend": "allow",
-        "chat": "allow"
+    "worker": [
+      {
+        "__boot__": [
+          "joinSwarm"
+        ],
+        "tags": {
+          "backend": "allow",
+          "chat": "allow"
+        }
+      }, {
+        "__boot__": [
+          "joinSwarm"
+        ],
+        "tags": {
+          "backend": "allow",
+          "chat": "allow"
+        }
+      }, {
+        "__boot__": [
+          "joinSwarm"
+        ],
+        "tags": {
+          "backend": "allow",
+          "chat": "allow"
+        }
       }
-    },
-    "worker2": {
-      "__boot__": [
-        "joinSwarm"
-      ],
-      "tags": {
-        "backend": "allow",
-        "chat": "allow"
-      }
-    },
-    "worker3": {
-      "__boot__": [
-        "joinSwarm"
-      ],
-      "tags": {
-        "backend": "allow",
-        "chat": "allow"
-      }
-    }
+    ]
   }
 }
