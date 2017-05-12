@@ -29,15 +29,13 @@ module.exports = (vorpal, print) => {
             this.log(`Deploying instances...`);
             return formation.deploy()
               .then(() => formation.boot())
-              .then(() => print(formation.instances, ['id', 'name', 'ip', 'type']));
+              .log(() => console.log(chalk.magenta(`Successfully deployed ${formation.instances.length} instances`)))
+              .then(() => print(_.values(formation.instances), ['id', 'name', 'ip', 'type']));
           });
         })
-        .then(() => {
-          vorpal.show();
-        })
+        .then(() => vorpal.show())
         .catch(err => {
-          console.log(chalk.red('Uncaught error'));
-          console.log(err);
+          console.log(chalk.red('Uncaught error:', err));
           vorpal.show();
         });
     });

@@ -1,5 +1,5 @@
 {
-  "name": "open-formation",
+  "name": "@cosmunity/open-formation",
   "version": "0.0.1",
   "description": "A templating engine for building infrastructure orchestration",
   "main": "index.js",
@@ -15,7 +15,6 @@
     "aws-sdk": "^2.49.0",
     "chalk": "^1.1.3",
     "cliff": "^0.1.10",
-    "colors": "^1.1.2",
     "dockerode": "^2.4.3",
     "lodash": "^4.17.4",
     "node-ssh": "^4.2.2",

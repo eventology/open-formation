@@ -6,7 +6,6 @@ const AWSElasticIp = require('./aws-elastic-ip');
 const {ssh, scp, urlToIp, cmd, tmpname, pwd} = require('./utils');
 const Volume = require('./volume');
 const path = require('path');
-const colors = require('colors');
 
 module.exports = class Instance extends Mappable {
 
