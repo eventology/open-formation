@@ -1,6 +1,6 @@
 {
   "name": "@cosmunity/open-formation",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "A templating engine for building infrastructure orchestration",
   "main": "index.js",
   "scripts": {
