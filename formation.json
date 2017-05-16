@@ -1,6 +1,6 @@
 {
   "config": {
-    "type": "t2.small",
+    "type": "t2.micro",
     "imageName": "ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-20170414",
     "keyName": "cosmunity",
     "region": "us-west-1"
@@ -23,22 +23,22 @@
     ],
     "joinSwarm": [
       "<% tokenCommand = `docker swarm join-token worker -q` %>",
-      "<% i.manager.ssh(tokenCommand, true).then(_token => token = _token) %>",
-      "docker swarm join --token <% print(token) %> <% print(i.manager.ip) %>:2377",
-      "<% wait(2000) %>",
+      "<% i.formation_manager.ssh(tokenCommand, true).then(_token => token = _token) %>",
+      "<% c.ssh(`docker swarm join --token ${token} ${i.formation_manager.ip}:2377`) %>",
+      "<% wait(5000) %>",
       "<% labels = _.reduce(c.tags, (c, v, k) => `--label-add ${k}=${v} ${c}`, '') %>",
       "<% nodeIdCommand = `curl --unix-socket '/var/run/docker.sock' 'http:/info'` %>",
       "<% c.ssh(nodeIdCommand, true).then(_info => info = JSON.parse(_info)) %>",
-      "<% i.manager.ssh(`docker node update ${_.get(info, 'Swarm.NodeID')} ${labels}`) %>"
+      "<% i.formation_manager.ssh(`docker node update ${_.get(info, 'Swarm.NodeID')} ${labels}`) %>"
     ]
   },
   "machines": {
-    "manager": {
+    "formation_manager": {
       "__boot__": [
         "createSwarm"
       ]
     },
-    "worker": [
+    "formation_worker": [
       {
         "__boot__": [
           "joinSwarm"

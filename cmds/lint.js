@@ -18,8 +18,9 @@ module.exports = (vorpal, print) => {
         .then(() => Formation.load(template))
       // return parseTemplate(template)
         .then(formation => {
+          formation.lint();
           console.log(chalk.magenta(`Found ${formation.machines.length} instances`));
-          print(formation.machines, ['name', 'type', 'region']);
+          print(_.values(formation.machines), ['name', 'type', 'region']);
         });
     });
 

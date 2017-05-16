@@ -2,9 +2,7 @@
 
 const Mappable = require('./mappable');
 const _ = require('lodash');
-const AWSElasticIp = require('./aws-elastic-ip');
-const {ssh, scp, urlToIp, cmd, tmpname, pwd} = require('../utils');
-const Volume = require('./volume');
+const {ssh, scp, urlToIp, pwd} = require('../utils');
 const path = require('path');
 
 module.exports = class Instance extends Mappable {
@@ -15,11 +13,19 @@ module.exports = class Instance extends Mappable {
 
   static byUrl(url) {
     return urlToIp(url)
-      .then(ip => this.findOne({ip}));
+      .then(ip => this.findOne({ip}))
+      .then(instance => {
+        if (!instance) throw new Error(`Unable to find instance with url "${url}"`);
+        return instance;
+      });
   }
 
   static byId(id) {
-    return this.findOne({id});
+    return this.findOne({id})
+      .then(instance => {
+        if (!instance) throw new Error(`Unable to find instance with id "${id}"`);
+        return instance;
+      });
   }
 
   static find(filter = {}) {
@@ -30,7 +36,8 @@ module.exports = class Instance extends Mappable {
           const instancePairs = _.map(_.toPairs(instance), i => _.join(i, ''));
           const filterPairs = _.map(_.toPairs(filter), i => _.join(i, ''));
           // If we get an object out of this it's a match
-          return _.intersection(instancePairs, filterPairs).length ? instance : undefined;
+          const intersections = _.intersection(instancePairs, filterPairs);
+          return intersections.length === _.keys(filter).length;
         })
         .compact()
         .value());
@@ -39,7 +46,7 @@ module.exports = class Instance extends Mappable {
   static findOne(filter) {
     return this.find(filter)
       .then(results => {
-        if (results.length !== 1) throw new Error('findOne did not find exactly 1 match.');
+        if (results.length > 1) throw new Error('findOne found more than 1 match.');
         return _.head(results);
       });
   }

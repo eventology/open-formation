@@ -20,8 +20,8 @@ module.exports = (vorpal, print) => {
       return Formation.load(template)
         .then(_formation => {
           formation = _formation;
-          console.log(chalk.magenta(`Deploying ${formation.machines.length} instances`));
-          print(formation.machines, ['name', 'type', 'region', 'keyName']);
+          console.log(chalk.magenta(`Deploying ${_.values(formation.machines).length} instances`));
+          print(_.values(formation.machines), ['name', 'type', 'region', 'keyName']);
           if (args.options.yes) return {'continue': true};
           return this.prompt({
             'type': 'confirm',
@@ -33,10 +33,12 @@ module.exports = (vorpal, print) => {
         .then(result => {
           if (!result.continue) return this.log('Deployment aborted.');
           this.log(`Deploying instances...`);
-          return formation.deploy()
-            .then(() => formation.boot())
-            .log(() => console.log(chalk.magenta(`Successfully deployed ${_.keys(formation.instances).length} instances`)))
-            .then(() => print(_.values(formation.instances), ['id', 'name', 'ip', 'type', 'region']));
+          return formation.createInstances()
+            .then(() => formation.instances())
+            .log(instances => {
+              console.log(chalk.magenta(`Successfully deployed ${_.keys(instances).length} instances`));
+              print(_.values(instances), ['id', 'name', 'ip', 'type', 'region']);
+            });
         })
         .then(() => vorpal.show())
         .catch(err => {

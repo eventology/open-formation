@@ -4,9 +4,56 @@ const fs = require('fs');
 const _ = require('lodash');
 const chalk = require('chalk');
 const Instance = require('./aws-instance');
-const vm = require('vm');
+const Evaluator = require('./evaluator');
+
+const optionRegex = /^__[a-zA-Z0-9]+__$/;
 
 module.exports = class Formation {
+
+  constructor(template = {}) {
+    _.defaultsDeep(template, {
+      'config': {
+        'type': 't2.nano',
+        'region': 'us-east-1'
+      },
+      'scripts': {},
+      'machines': {}
+    });
+    this.scripts = template.scripts;
+    this.machines = _.chain(template.machines)
+      .map((_machines, name) =>
+        _.chain([_machines])
+          .flatten()
+          .map((machine, index, machines) => _.assign({}, template.config, machine, {
+            'name': `${name}${machines.length > 1 ? index : ''}`
+          }))
+          .value())
+      .flatten()
+      .compact()
+      .value();
+  }
+
+  lint() {
+    this.lintNames();
+    this.lintScripts();
+  }
+
+  lintNames() {
+    const names = _.chain(this.machines).map('name').uniq().compact().value();
+    if (names.length === this.machines.length) return;
+    throw new Error(`Names length mismatch, do you have duplicate names?`);
+  }
+
+  lintScripts() {
+    _.forEach(this.machines, machine => {
+      const scripts = machine.__boot__ || [];
+      if (!_.isArray(scripts)) throw new Error(`Non-array "__boot__" found for ${machine}`);
+      _.forEach(scripts, name => {
+        if (this.scripts[name]) return;
+        throw new Error(`Script "${name}" not found in formation.`);
+      });
+    });
+  }
 
   /**
    * Static constructor, returns a promise
@@ -17,42 +64,35 @@ module.exports = class Formation {
    * boot
    **/
   static load(path) {
-    const formation = new Formation();
     return new Promise((rs, rj) => fs.readFile(path, (err, data) => {
       if (err) rj(err);
       else rs(data.toString());
     }))
-      .then(JSON.parse)
-      .then(template => {
-        formation.template = _.defaultsDeep(template, {
-          'machines': {},
-          'config': {
-            'type': 't2.nano',
-            'region': 'us-east-1'
-          },
-          'scripts': {}
-        });
+      .then(data => JSON.parse(data))
+      .then(template => new Formation(template));
+  }
 
-        formation.machineScripts = {};
-        formation.machines = _.chain(template.machines)
-          .map((_machines, name) => {
-            const machines = _.flatten([_machines]);
-            return _.map(machines, (options, index) => {
-              return _.assign(_.clone(template.config), {
-                'name': `${name}${machines.length > 1 ? index : ''}`
-              }, options);
-            });
-          })
-          .flatten()
-          .map(machine => {
-            const bootKey = '__boot__';
-            const boot = _.get(machine, bootKey);
-            delete machine[bootKey];
-            formation.machineScripts[machine.name] = _.chain([boot]).flatten().compact().value();
-            return machine;
-          })
-          .value();
-        return formation;
+  instances() {
+    const namedMachines = _.keyBy(this.machines, 'name');
+    let errCount = 0;
+    const maxErrCount = 5;
+    const _load = () => {
+      return Instance.find({
+        'state': 'running'
+      })
+        .then(instances => {
+          if (_.find(instances, instance => !instance.ip)) throw new Error(`No ip found for instance`);
+          return _.chain(instances)
+            .filter(instance => namedMachines[instance.name])
+            .keyBy('name')
+            .value();
+        });
+    };
+    return _load()
+      .catch(err => {
+        console.log(chalk.yellow(`Error loading instances, trying again (${++errCount} / ${maxErrCount})`));
+        if (errCount > maxErrCount) throw err;
+        return _load();
       });
   }
 
@@ -60,18 +100,28 @@ module.exports = class Formation {
    * Provision the hardware resources
    * Then boot the resources
    **/
-  deploy() {
-    let count = 0;
-    return Promise.all(_.map(this.machines, machine => {
-      return Instance.create(machine)
+  createInstances() {
+    const createdNames = [];
+
+    const promises = _.map(this.machines, machine => {
+      return Instance.findOne({
+        'name': machine.name,
+        'state': 'running'
+      })
         .then(instance => {
-          console.log(chalk.green(`Instance ${++count} of ${this.machines.length} deployed.`));
-          return instance;
+          if (instance) return instance;
+          createdNames.push(machine.name);
+          const params = _.omitBy(machine, (value, key) => optionRegex.test(key));
+
+          return Instance.create(params)
+            .log(i => console.log(chalk.green(`Created instance "${machine.name}", "${i.id}"`)));
         });
-    }))
-      .then(instances => {
-        this.instances = _.keyBy(instances, 'name');
-        return this;
+    });
+
+    return Promise.all(promises)
+      .then(() => {
+        const sortedNames = _.sortBy(createdNames, name => _.findIndex(this.machines, ['name', name]));
+        return this.boot(sortedNames);
       });
   }
 
@@ -79,32 +129,10 @@ module.exports = class Formation {
    * Run the default boot script on all machines in parallel
    * Then run the machine specific boot scripts in a serial queue
    **/
-  boot() {
-    if (!this.instances) throw new Error(`No instances loaded, run deploy first`);
-    console.log(chalk.green(`Running "default" boot script in parallel on ${_.keys(this.instances).length} machines`));
-    return Promise.all(_.map(this.instances, instance => {
-      return this.runScript(instance, 'default')
-        .catch(err => console.log(chalk.yellow('No default boot script present.')));
-    }))
-      .then(() => {
-        // Executing promises in a serial queue
-        // Boot order matters
-        return Promise.map(this.instances, instance => this.bootInstance(instance));
-      });
-  }
-
   /**
    * Boot an instance using javascript overlayed onto shell commands
    * Promises are well supported
    **/
-  bootInstance(instance) {
-    const scripts = this.machineScripts[instance.name];
-    return Promise.map(scripts, (script, index) => {
-      console.log(chalk.green(`Running "${script}" on instance "${instance.name}" ( ${index + 1} / ${scripts.length} )`));
-      return this.runScript(instance, script);
-    });
-  }
-
   /**
    * Evaluate a series of strings (shell commands) with embedded JS
    *
@@ -127,76 +155,74 @@ module.exports = class Formation {
    * using javascript as the logical binding.
    *
    */
-  runScript(instance, name) {
-    return Promise.resolve()
-      .then(() => {
-        if (!this.instances) throw new Error(`No instances loaded, run deploy first`);
-        const script = _.get(this, `template.scripts[${name}]`);
-        if (!script) throw new Error(`Unable to find script ${name}`);
-        // Context is provided so the script can store and share variables
-        const context = vm.createContext({
-          'i': this.instances,
-          'c': instance,
-          _,
-          'console': console
+  boot(names = []) {
+    if (!names.length) throw new Error(`No instance names supplied, include them as the first argument`);
+    const defaultScript = 'default';
+    const baseContext = {
+      _,
+      'console': console
+    };
+    const namedMachines = _.keyBy(this.machines, 'name');
+    return this.instances()
+      .then(instances => {
+        console.log(chalk.green(`Running "${defaultScript}" boot script in parallel on ${_.keys(instances).length} machines`));
+
+        /**
+         * The default script is executed in parallel
+         * These are the promises
+         **/
+        const promises = _.map(names, name => {
+          const instance = instances[name];
+          if (!instance) throw new Error(`Unable to find instance by name "${name}"`);
+          const commands = this.scripts[defaultScript] || [];
+          const evaluator = new Evaluator(_.assign(baseContext, {
+            'c': instance,
+            'i': instances
+          }));
+          return evaluator.evaluate(commands)
+            .then(evaledCommands => instance.ssh(evaledCommands))
+            .catch(err => console.log(chalk.yellow('No default boot script present.')));
         });
-        return Promise.map(script, line => this.evalCommand(line, context));
+
+        return Promise.all(promises)
+          .then(() => this.instances());
       })
-      .then(evaledScript => instance.ssh(evaledScript))
-      .catch(err => {
-        console.log(chalk.red(`Error runnning "${name}"`));
-        console.log(instance);
-        console.log(err);
-        throw err;
+      .then(instances => {
+        /**
+         * After the default script is run subsequent instances and scripts are run
+         * in a serial queue using Promise.map
+         **/
+        return Promise.map(names, name => {
+          const instance = instances[name];
+          if (!instance) throw new Error(`Unable to find instance by name "${name}"`);
+          const machine = namedMachines[name];
+          if (!machine) throw new Error(`Unable to find machine by name "${name}"`);
+          const scripts = machine.__boot__ || [];
+
+          /**
+           * Run all the instance boot scripts requested
+           **/
+          return Promise.map(scripts, (scriptName, index) => {
+            console.log(chalk.green(`Running "${scriptName}" on instance "${name}" (${index + 1} / ${scripts.length})`));
+            const commands = this.scripts[scriptName];
+            if (!commands) throw new Error(`Unable to find script "${scriptName}"`);
+            // Context is provided so the script can store and share variables
+            const evaluator = new Evaluator(_.assign(baseContext, {
+              'c': instance,
+              'i': instances
+            }));
+            // `script` is just an array of strings
+            return evaluator.evaluate(commands)
+              .then(evaledCommands => instance.ssh(evaledCommands))
+              .catch(err => {
+                console.log(chalk.red(`Error runnning "${scriptName}"`));
+                console.log(instance);
+                console.log(err);
+                throw err;
+              });
+          });
+        });
       });
   }
 
-  /**
-   * Take a string and execute any contained javascript
-   *
-   * Any calls to the print function in the nested scripts output content to
-   * the original string
-   **/
-  evalCommand(command, context) {
-    if (!_.isString(command)) return Promise.reject(new Error(`Invalid command ${command}`));
-    const regex = _.clone(/<%.*?%>/g);
-    // Regex.exec returns null on no matches
-    const matches = [];
-    while (1) {
-      const match = regex.exec(command);
-      if (match === null) break;
-      matches.push(_.head(match));
-    }
-    // Execute all of the found commands in the v8 vm and return promises
-    if (!vm.isContext(context)) return Promise.reject(new Error('A vm context must be suppled to evalCommand'));
-    // History is accessible as a global in the execution context
-    // it stores the previous command results
-    let replacedCommand = _.clone(command);
-    context.wait = time => new Promise(r => setTimeout(r, time));
-    return Promise.map(matches, js => {
-      const output = [];
-      context.print = function (value) {
-        output.push(_.get(value, 'then') ? value : Promise.resolve(value));
-      };
-      const trimmedCommand = _.trim(_.clone(js), '<%>');
-      const result = vm.runInContext(trimmedCommand, context);
-      const promise = _.get(result, 'then') ? result : Promise.resolve(result);
-
-      // Wait for any promise output from the vm to resolve
-      // output.push(Promise.resolve().then(() => out));
-      return promise
-        // Reset the print function in the vm context
-        .then(() => context.print = _.noop)
-        // Wrap the outputs
-        .then(() => Promise.all(output))
-        // Replace command parts if necessary
-        .then(parts => {
-          const replacement = _(parts)
-            .filter(p => _.isString(p) || _.isNumber(p))
-            .join(' ');
-          replacedCommand = _.replace(replacedCommand, js, replacement);
-        });
-    })
-      .then(() => replacedCommand);
-  }
 };

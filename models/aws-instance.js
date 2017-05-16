@@ -63,7 +63,13 @@ module.exports = class AWSInstance extends Instance {
     const promises = _.chain(regions)
       .map(region => new AWS.EC2({region}))
       .map(ec2 => ec2.describeInstances({
-          'InstanceIds': id ? [id] : undefined
+          'InstanceIds': id ? [id] : undefined,
+          'Filters': [
+            {
+              'Name': 'instance-state-name',
+              'Values': ['running', 'pending', 'stopping', 'stopped']
+            }
+          ]
         }))
       .invokeMap('promise')
       .value();
