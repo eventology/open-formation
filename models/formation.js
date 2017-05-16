@@ -156,7 +156,8 @@ module.exports = class Formation {
    *
    */
   boot(names = []) {
-    if (!names.length) throw new Error(`No instance names supplied, include them as the first argument`);
+    if (!names) throw new Error(`No instance names supplied, include them as the first argument`);
+    if (!names.length) return Promise.resolve();
     const defaultScript = 'default';
     const baseContext = {
       _,
