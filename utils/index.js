@@ -102,8 +102,11 @@ function ssh(options = {}) {
     })
     .then(result => {
       disconnect(_ssh);
-      if (!_.isArray(commands)) return result.pop().stdout;
-      return _.map(result, 'stdout');
+      if (!_.isArray(commands)) return _.trim(result.pop().stdout, '\n');
+      return _(result)
+        .map('stdout')
+        .map(stdout => _.trim(stdout, '\n'))
+        .join('\n');
     })
     .catch(err => {
       console.log(chalk.red(`Error in connection to ${name}.`));

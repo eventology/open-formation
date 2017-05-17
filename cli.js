@@ -6,7 +6,7 @@
 require('./index');
 
 const vorpal = require('vorpal')();
-const {Formation, AWSInstance} = require('./models');
+const {Formation} = require('./models');
 const _ = require('lodash');
 const {pwd} = require('./utils');
 const path = require('path');
@@ -16,34 +16,8 @@ console.log(chalk.green(`Loading formation...`));
 
 const template = path.join(pwd(), 'formation.json');
 
-Promise.all([
-  Formation.load(template),
-  AWSInstance.load()
-])
-  .then(results => {
-    const formation = results[0];
-    const machines = _.values(formation.machines);
-    const instances = _.keyBy(results[1], 'name');
-
-    print(_.map(machines, machine => _.assign({}, machine, {
-      'instanceExists': !!instances[machine.name],
-      'instanceType': _.get(instances[machine.name], 'type'),
-      'instanceIp': _.get(instances[machine.name], 'ip')
-    })), ['name', {
-      'name': 'type',
-      'colorize': true
-    }, {
-      'name': 'region',
-      'colorize': true
-    }, 'keyName', {
-      'name': 'instanceExists',
-      'colorize': true
-    }, {
-      'name': 'instanceType',
-      'colorize': true
-    }, 'instanceIp']);
-
-    console.log(chalk.green('Available scripts:'), _(formation.scripts).keys().join(' '));
+Formation.load(template)
+  .then(formation => {
 
     /**
      * Load the commands
@@ -58,9 +32,7 @@ Promise.all([
       .show()
       .parse(process.argv);
   })
-  .catch(err => {
-    console.log(err);
-  });
+  .catch(err => console.log('Uncaught boot error', err));
 
 /**
  * A function to print the contents of `data` in a table with headers defined

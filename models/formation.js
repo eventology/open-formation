@@ -164,30 +164,9 @@ module.exports = class Formation {
       'console': console
     };
     const namedMachines = _.keyBy(this.machines, 'name');
-    return this.instances()
-      .then(instances => {
-        console.log(chalk.green(`Running "${defaultScript}" boot script in parallel on ${names.length} machines`));
-
-        /**
-         * The default script is executed in parallel
-         * These are the promises
-         **/
-        const promises = _.map(names, name => {
-          const instance = instances[name];
-          if (!instance) throw new Error(`Unable to find instance by name "${name}"`);
-          const commands = this.scripts[defaultScript] || [];
-          const evaluator = new Evaluator(_.assign(baseContext, {
-            'c': instance,
-            'i': instances
-          }));
-          return evaluator.evaluate(commands)
-            .then(evaledCommands => instance.ssh(evaledCommands))
-            .catch(err => console.log(chalk.yellow('No default boot script present.')));
-        });
-
-        return Promise.all(promises)
-          .then(() => this.instances());
-      })
+    console.log(chalk.green(`Running "${defaultScript}" boot script in parallel on ${names.length} machines`));
+    return this.run(defaultScript, names)
+      .then(() => this.instances())
       .then(instances => {
         /**
          * After the default script is run subsequent instances and scripts are run
@@ -205,24 +184,36 @@ module.exports = class Formation {
            **/
           return Promise.map(scripts, (scriptName, index) => {
             console.log(chalk.green(`Running "${scriptName}" on instance "${name}" (${index + 1} / ${scripts.length})`));
-            const commands = this.scripts[scriptName];
-            if (!commands) throw new Error(`Unable to find script "${scriptName}"`);
-            // Context is provided so the script can store and share variables
-            const evaluator = new Evaluator(_.assign(baseContext, {
-              'c': instance,
-              'i': instances
-            }));
-            // `script` is just an array of strings
-            return evaluator.evaluate(commands)
-              .then(evaledCommands => instance.ssh(evaledCommands))
-              .catch(err => {
-                console.log(chalk.red(`Error runnning "${scriptName}"`));
-                console.log(instance);
-                console.log(err);
-                throw err;
-              });
-          });
+            return this.run(scriptName, name);
         });
+      });
+    });
+  }
+
+/**
+ * Run a script on a set of instances by name
+ *
+ *
+ * @param {String} scriptName The name of the script to run, defined in formation
+ * @param {Array} names An array of machine names to run the script on
+ **/
+  run(scriptName, names = []) {
+    if (_.isString(names)) names = [names];
+    const script = this.scripts[scriptName];
+    if (!script) throw new Error(`Unabled to find "${scriptName}" in current formation`);
+    return this.instances()
+      .then(instances => {
+        return Promise.all(_.map(names, name => {
+          const instance = instances[name];
+          if (!instance) throw new Error(`Unable to find instance for name "${name}"`);
+          return instance.command(script, {
+            'i': instances
+          });
+        }));
+      })
+      .catch(err => {
+        console.log(chalk.red(`Error running script "${scriptName}"`));
+        throw err;
       });
   }
 

@@ -3,6 +3,7 @@
 const _ = require('lodash');
 const chalk = require('chalk');
 const {AWSInstance} = require('../models');
+const confirm = require('inquirer-confirm');
 
 module.exports = (vorpal, print, formation) => {
 
@@ -13,7 +14,6 @@ module.exports = (vorpal, print, formation) => {
     .action(function (args) {
       return formation.instances()
         .then(instances => {
-          console.log(chalk.magenta(`Terminating ${_.keys(instances).length} instances`));
           print(_.values(instances), ['id', 'name', {
             'name': 'type',
             'colorize': true
@@ -21,12 +21,8 @@ module.exports = (vorpal, print, formation) => {
             'name': 'region',
             'colorize': true
           }]);
-          return (args.options.yes ? Promise.resolve({'continue': true}) : this.prompt({
-            'type': 'confirm',
-            'name': 'continue',
-            'default': false,
-            'message': `Continue?`
-          })).then(result => result.continue ? instances : undefined);
+          return confirm(chalk.magenta(`Terminating ${_.keys(instances).length} instances`))
+            .then(() => instances);
         })
         .then(instances => {
           if (!instances) throw new Error('User terminated');

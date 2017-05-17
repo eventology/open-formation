@@ -4,6 +4,7 @@ const Mappable = require('./mappable');
 const _ = require('lodash');
 const {ssh, scp, urlToIp, pwd} = require('../utils');
 const path = require('path');
+const Evaluator = require('./evaluator');
 
 module.exports = class Instance extends Mappable {
 
@@ -73,6 +74,16 @@ module.exports = class Instance extends Mappable {
 
   keyPath() {
     return path.join(pwd(), `${this.keyName}_${this.region}.pem`);
+  }
+
+  command(commands, context = {}) {
+    const evaluator = new Evaluator(_.defaults(context, {
+      'c': this,
+      _,
+      'console': console
+    }));
+    return evaluator.evaluate(commands)
+      .then(evaledCommands => this.ssh(evaledCommands, true));
   }
 
   ssh(commands, results = false) {

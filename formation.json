@@ -30,6 +30,9 @@
       "<% nodeIdCommand = `curl --unix-socket '/var/run/docker.sock' 'http:/info'` %>",
       "<% c.ssh(nodeIdCommand, true).then(_info => info = JSON.parse(_info)) %>",
       "<% i.formation_manager.ssh(`docker node update ${_.get(info, 'Swarm.NodeID')} ${labels}`) %>"
+    ],
+    "test": [
+      "<% console.log(_.join(['hello', 'there'], ' ')) %>"
     ]
   },
   "machines": {
