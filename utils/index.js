@@ -42,7 +42,7 @@ function pwd() {
 
 function connect(options = {}) {
   const _ssh = new NodeSSH();
-  const maxCount = 5;
+  const maxCount = 7;
   let count = 0;
   const name = `${options.username}@${options.host}`;
   console.log(chalk.blue(`Connecting to ${name}`));
@@ -50,7 +50,7 @@ function connect(options = {}) {
     .catch(err => {
       if (++count > maxCount) throw err;
       console.log(chalk.yellow(`Error connecting to ${name}, retrying. (${count} / ${maxCount})`));
-      return new Promise(r => setTimeout(r, 5000))
+      return new Promise(r => setTimeout(r, 8000))
         .then(() => _connect());
     })
     .then(() => _ssh);

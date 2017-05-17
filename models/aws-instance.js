@@ -274,13 +274,14 @@ module.exports = class AWSInstance extends Instance {
       'InstanceIds': [this.id]
     })
       .promise()
+      .log(instance => console.log(chalk.magenta(`${this.type} instance ${this.id} terminated in ${this.region}`)))
       .then(res => {
         const instanceIds = _.chain(res)
           .get('TerminatingInstances')
           .map('InstanceId')
           .value();
         if (instanceIds.length !== 1) throw new Error(`Invalid instances length: ${instanceIds}`);
-        return this.constructor.byId(_.first(instanceIds));
+        return this;
       });
   }
 

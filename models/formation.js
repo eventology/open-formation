@@ -166,7 +166,7 @@ module.exports = class Formation {
     const namedMachines = _.keyBy(this.machines, 'name');
     return this.instances()
       .then(instances => {
-        console.log(chalk.green(`Running "${defaultScript}" boot script in parallel on ${_.keys(instances).length} machines`));
+        console.log(chalk.green(`Running "${defaultScript}" boot script in parallel on ${names.length} machines`));
 
         /**
          * The default script is executed in parallel
