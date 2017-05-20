@@ -83,13 +83,15 @@ function print(data, _options) {
   // This will get built on to
   const colorMap = {
     'true': 'green',
-    'false': 'red'
+    'false': 'red',
+    'ACTIVE': 'green',
+    'DRAINING': 'red'
   };
 
   // Generate the table body based on row content
   const bodyString = _(rows)
     // Add padding for each row
-    .map(row => _.mapValues(row, (value, key) => _.padEnd(value, columnLengths[key])))
+    .map(row => _.mapValues(row, (value, key) => _.padEnd(`${value}`, columnLengths[key])))
     // Map values into strings
     .map(row => _.map(options, opt => {
       const value = row[opt.name];
