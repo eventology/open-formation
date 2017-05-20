@@ -199,21 +199,28 @@ module.exports = class Formation {
  **/
   run(scriptName, names = []) {
     if (_.isString(names)) names = [names];
-    const script = this.scripts[scriptName];
-    if (!script) throw new Error(`Unabled to find "${scriptName}" in current formation`);
+    const script = this.scripts[scriptName] || scriptName;
+    // if (!script) throw new Error(`Unabled to find "${scriptName}" in current formation`);
+    return this.exec(script, names)
+      .catch(err => {
+        console.log(chalk.red(`Error running script "${scriptName}"`));
+        throw err;
+      });
+  }
+
+  exec(commands, names = []) {
+    if (_.isString(names)) names = [names];
+    if (_.isString(commands)) commands = [commands];
+    if (!commands) throw new Error('No commands supplied to exec');
     return this.instances()
       .then(instances => {
         return Promise.all(_.map(names, name => {
           const instance = instances[name];
           if (!instance) throw new Error(`Unable to find instance for name "${name}"`);
-          return instance.command(script, {
+          return instance.command(commands, {
             'i': instances
           });
         }));
-      })
-      .catch(err => {
-        console.log(chalk.red(`Error running script "${scriptName}"`));
-        throw err;
       });
   }
 

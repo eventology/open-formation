@@ -18,6 +18,22 @@ module.exports = class Evaluator {
     return Promise.map(commands, command => this._evaluate(command));
   }
 
+  static parse(string) {
+    const regex = _.clone(/<%.*?%>/g);
+    const matches = [];
+    while (1) {
+      const match = regex.exec(string);
+      // Regex.exec returns null on no matches
+      if (match === null) break;
+      matches.push(_.head(match));
+    }
+    return matches;
+  }
+
+  parse(string) {
+    return this.constructor.parse(string);
+  }
+
   /**
    * Take a string and execute any contained javascript
    *
@@ -26,14 +42,7 @@ module.exports = class Evaluator {
    **/
   _evaluate(command) {
     if (!_.isString(command)) return Promise.reject(new Error(`Invalid command ${command}`));
-    const regex = _.clone(/<%.*?%>/g);
-    // Regex.exec returns null on no matches
-    const matches = [];
-    while (1) {
-      const match = regex.exec(command);
-      if (match === null) break;
-      matches.push(_.head(match));
-    }
+    const matches = this.parse(command);
 
     // Execute all of the found commands in the v8 vm and return promises
     if (!vm.isContext(this.context)) return Promise.reject(new Error('A vm context must be suppled to evalCommand'));

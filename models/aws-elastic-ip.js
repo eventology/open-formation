@@ -4,6 +4,10 @@ const Mappable = require('./mappable');
 const _ = require('lodash');
 const dns = require('dns');
 const {urlToIp} = require('../utils');
+const AWS = require('aws-sdk');
+_.defaults(AWS.config, {
+  'region': process.env.AWS_REGION || 'us-east-1'
+});
 
 module.exports = class ElasticIp extends Mappable {
 
