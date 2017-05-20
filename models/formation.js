@@ -5,6 +5,7 @@ const _ = require('lodash');
 const chalk = require('chalk');
 const Instance = require('./aws-instance');
 const Evaluator = require('./evaluator');
+const AWSService = require('./aws-service');
 
 const optionRegex = /^__[a-zA-Z0-9]+__$/;
 
@@ -31,6 +32,12 @@ module.exports = class Formation {
       .flatten()
       .compact()
       .value();
+    this.taskDefinitions = _.chain(template.taskDefinitions || [])
+      .map((value, family) => _.assign({family}, value))
+      .keyBy('family')
+      .value();
+    this.cluster = template.cluster;
+    if (!this.cluster) throw new Error('No cluster specified! Use a top level variable named "cluster" to set the name.');
   }
 
   lint() {
@@ -221,6 +228,15 @@ module.exports = class Formation {
             'i': instances
           });
         }));
+      });
+  }
+
+  registerTaskName(name) {
+    return Promise.resolve()
+      .then(() => {
+        const definition = this.taskDefinitions[name];
+        if (!definition) throw new Error(`Unable to find task definition "${name}"`);
+        return AWSService.registerTaskDefinition(definition);
       });
   }
 

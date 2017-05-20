@@ -51,44 +51,39 @@ module.exports = class AWSService extends Mappable {
       .then(services => this.Map(services));
   }
 
-  static registerTaskDef(task) {
+  static registerTaskDefinition(task) {
     const ecs = new AWS.ECS();
     return ecs.registerTaskDefinition(task)
+      .promise()
+      .then(res => ({
+        'arn': _.get(res, 'taskDefinition.taskDefinitionArn'),
+        'name': _.get(res, 'taskDefinition.family'),
+        'revision': _.get(res, 'taskDefinition.revision')
+      }));
+  }
+
+  update(params = {}) {
+    const ecs = new AWS.ECS();
+    return ecs.updateService(_.assign({
+      'cluster': this.clusterName,
+      'service': this.name
+    }, params))
       .promise();
   }
 
-  static byUrl(url) {
-    return Promise.all([
-      urlToIp(url),
-      this.load()
-    ])
-      .then(results => {
-        const ip = results[0];
-        const ips = results[1];
-        return _.find(ips, {ip});
-      });
-  }
-
-  associate(instanceId) {
-    const ec2 = new AWS.EC2();
-    return ec2.associateAddress({
-      'AllocationId': this.id,
-      'InstanceId': instanceId
-    }).promise();
-  }
-
-  disassociate() {
-    const ec2 = new AWS.EC2();
-    return ec2.disassociateAddress({
-      'AllocationId': this.id
-    }).promise();
-  }
-
-  release() {
-    const ec2 = new AWS.EC2();
-    return ec2.releaseAddress({
-      'AllocationId': this.id
-    }).promise();
+  static find(cluster, filter = {}) {
+    return this.load(cluster)
+      .then(services => _.chain(services)
+        .filter(service => {
+          if (!_.keys(filter).length) return service;
+          const servicePairs = _.map(_.toPairs(service), i => _.join(i, ''));
+          const filterPairs = _.map(_.toPairs(filter), i => _.join(i, ''));
+          // If we get an object out of this it's a match
+          const intersections = _.intersection(servicePairs, filterPairs);
+          return intersections.length === _.keys(filter).length;
+        })
+        .compact()
+        .value());
   }
 
 };

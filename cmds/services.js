@@ -7,10 +7,10 @@ const chalk = require('chalk');
 module.exports = (vorpal, print, formation) => {
 
   vorpal
-    .command('services <cluster>')
+    .command('services [cluster]')
     .description('List services for a cluser')
     .action(function (args) {
-      return AWSService.load(args.cluster)
+      return AWSService.load(args.cluster || formation.cluster)
         .then(services => {
           print(services, [{
             'name': 'clusterName',
@@ -28,6 +28,11 @@ module.exports = (vorpal, print, formation) => {
             'name': 'pendingCount',
             'colorize': true
           }]);
+        })
+        .then(() => vorpal.show())
+        .catch(err => {
+          console.log(chalk.red('Uncaught error, aborting'), err);
+          vorpal.show();
         });
     });
 

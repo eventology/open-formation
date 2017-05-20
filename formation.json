@@ -1,4 +1,5 @@
 {
+  "cluster": "ofn",
   "config": {
     "imageName": "ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-20170414",
     "type": "t2.small",
@@ -9,7 +10,7 @@
     }
   },
   "machines": {
-    "test": [
+    "formation": [
       {
         "zone": "us-east-1e",
         "BlockDeviceMappings": [{
@@ -27,21 +28,6 @@
         }]
       }, {
         "zone": "us-east-1a",
-        "BlockDeviceMappings": [{
-          "DeviceName": "/dev/sda1",
-          "Ebs": {
-            "VolumeSize": 50,
-            "VolumeType": "gp2"
-          }
-        }, {
-          "DeviceName": "/dev/sdf",
-          "Ebs": {
-            "VolumeSize": 50,
-            "VolumeType": "gp2"
-          }
-        }]
-      }, {
-        "zone": "us-east-1b",
         "BlockDeviceMappings": [{
           "DeviceName": "/dev/sda1",
           "Ebs": {
@@ -93,11 +79,52 @@
       "echo 'ECS_DATADIR=/data' | sudo tee -a /etc/ecs/ecs.config",
       "echo 'ECS_ENABLE_TASK_IAM_ROLE=true' | sudo tee -a /etc/ecs/ecs.config",
       "echo 'ECS_ENABLE_TASK_IAM_ROLE_NETWORK_HOST=true' | sudo tee -a /etc/ecs/ecs.config",
-      "echo 'ECS_CLUSTER=open-formation' | sudo tee -a /etc/ecs/ecs.config",
+      "echo 'ECS_CLUSTER=ofn' | sudo tee -a /etc/ecs/ecs.config",
       "sudo docker run --name ecs-agent --detach=true --restart=on-failure:10 --volume=/var/run:/var/run --volume=/var/log/ecs/:/log --volume=/var/lib/ecs/data:/data --volume=/etc/ecs:/etc/ecs --net=host --env-file=/etc/ecs/ecs.config amazon/amazon-ecs-agent:latest"
     ]
   },
-  "services": {
-    
+  "taskDefinitions": {
+    "sshd": {
+      "networkMode": "bridge",
+      "taskRoleArn": "arn:aws:iam::712623285669:role/Juggler",
+      "containerDefinitions": [
+        {
+          "volumesFrom": [],
+          "memory": null,
+          "extraHosts": null,
+          "dnsServers": null,
+          "disableNetworking": null,
+          "dnsSearchDomains": null,
+          "portMappings": [
+            {
+              "hostPort": 2222,
+              "containerPort": 22,
+              "protocol": "tcp"
+            }
+          ],
+          "hostname": null,
+          "essential": true,
+          "entryPoint": null,
+          "mountPoints": [],
+          "name": "sshd",
+          "ulimits": null,
+          "dockerSecurityOptions": null,
+          "environment": [],
+          "links": null,
+          "workingDirectory": null,
+          "readonlyRootFilesystem": null,
+          "image": "registry.hub.docker.com/rastasheep/ubuntu-sshd:16.04",
+          "command": null,
+          "user": null,
+          "dockerLabels": null,
+          "cpu": 256,
+          "privileged": null,
+          "memoryReservation": 128
+        }
+      ],
+      "placementConstraints": [],
+      "volumes": [],
+      "family": "sshd"
+    }
   }
 }
