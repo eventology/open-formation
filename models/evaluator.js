@@ -9,7 +9,8 @@ module.exports = class Evaluator {
   constructor(context = {}) {
     this.context = vm.createContext(_.assign(context, {
       /** Add wait as a global wait function in scripts **/
-      'wait': time => new Promise(r => setTimeout(r, time))
+      'wait': time => new Promise(r => setTimeout(r, time)),
+      'process': process
     }));
   }
 
