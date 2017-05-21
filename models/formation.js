@@ -18,7 +18,8 @@ module.exports = class Formation {
         'region': 'us-east-1'
       },
       'scripts': {},
-      'machines': {}
+      'machines': {},
+      'services': {}
     });
     this.scripts = template.scripts;
     this.machines = _.chain(template.machines)
@@ -36,8 +37,9 @@ module.exports = class Formation {
       .map((value, family) => _.assign({family}, value))
       .keyBy('family')
       .value();
+
     this.cluster = template.cluster;
-    if (!this.cluster) throw new Error('No cluster specified! Use a top level variable named "cluster" to set the name.');
+    this.services = template.services;
   }
 
   lint() {
@@ -231,12 +233,24 @@ module.exports = class Formation {
       });
   }
 
-  registerTaskName(name) {
-    return Promise.resolve()
-      .then(() => {
-        const definition = this.taskDefinitions[name];
-        if (!definition) throw new Error(`Unable to find task definition "${name}"`);
-        return AWSService.registerTaskDefinition(definition);
+  versionService(name) {
+    const definition = _.get(this, `services[${name}].taskDefinition`);
+    if (!definition) throw new Error(`Unable to find task definition "${name}". Task definitions should match service names.`);
+    console.log(definition);
+    return Promise.all([
+      AWSService.registerTaskDefinition(definition),
+      AWSService.find(this.cluster, {name})
+    ])
+      .then(results => {
+        const taskDef = results[0];
+        const services = results[1];
+        if (services.length === 1) return _.head(services);
+        if (services.length > 1) throw new Error('Invalid number of services found');
+        return AWSService.create({
+          'cluster': this.cluster,
+          'serviceName': name,
+          'taskDefinition': taskDef.arn
+        });
       });
   }
 

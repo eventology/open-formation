@@ -24,6 +24,16 @@ module.exports = class AWSService extends Mappable {
     };
   }
 
+  static create(params = {}) {
+    _.defaults(params, {
+      'desiredCount': 1
+    });
+    const ecs = new AWS.ECS();
+    return ecs.createService(params)
+      .promise()
+      .then(res => this.Map(res.service));
+  }
+
   static load(cluster = 'default') {
     const ecs = new AWS.ECS();
     const results = [];
@@ -59,6 +69,13 @@ module.exports = class AWSService extends Mappable {
         'arn': _.get(res, 'taskDefinition.taskDefinitionArn'),
         'name': _.get(res, 'taskDefinition.family'),
         'revision': _.get(res, 'taskDefinition.revision')
+      }));
+  }
+
+  registerTaskDefinition(task) {
+    return this.constructor.registerTaskDefinition(task)
+      .then(taskDef => this.update({
+        'taskDefinition': taskDef.arn
       }));
   }
 
