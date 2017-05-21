@@ -84,7 +84,7 @@
     ]
   },
   "services": {
-    "sshd2": {
+    "sshd": {
       "desiredCount": 3,
       "taskDefinition": {
         "networkMode": "bridge",
@@ -126,7 +126,7 @@
         ],
         "placementConstraints": [],
         "volumes": [],
-        "family": "sshd2"
+        "family": "sshd"
       }
     }
   }

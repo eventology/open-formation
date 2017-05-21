@@ -46,6 +46,10 @@ module.exports = (vorpal, print, formation) => {
     .description('Create a new deployment version for a service and push the latest task configuration.')
     .action(function (args) {
       return formation.versionService(args.service)
+        .log(service => {
+          console.log(chalk.yellow(`Service ${service.name} updated to ${service.taskId}`));
+          console.log(service);
+        })
         .then(() => vorpal.show())
         .catch(err => {
           console.log(chalk.red('Uncaught error, aborting'), err);

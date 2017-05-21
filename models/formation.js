@@ -236,7 +236,6 @@ module.exports = class Formation {
   versionService(name) {
     const definition = _.get(this, `services[${name}].taskDefinition`);
     if (!definition) throw new Error(`Unable to find task definition "${name}". Task definitions should match service names.`);
-    console.log(definition);
     return Promise.all([
       AWSService.registerTaskDefinition(definition),
       AWSService.find(this.cluster, {name})
@@ -244,13 +243,16 @@ module.exports = class Formation {
       .then(results => {
         const taskDef = results[0];
         const services = results[1];
-        if (services.length === 1) return _.head(services);
         if (services.length > 1) throw new Error('Invalid number of services found');
-        return AWSService.create({
+        const service = _.head(services);
+        const serviceDef = this.services[name];
+        return service ? service.update(_.assign(serviceDef, {
+          'taskDefinition': taskDef.arn
+        })) : AWSService.create(_.assign(serviceDef, {
           'cluster': this.cluster,
           'serviceName': name,
           'taskDefinition': taskDef.arn
-        });
+        }));
       });
   }
 

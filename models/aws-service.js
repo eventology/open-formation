@@ -79,13 +79,23 @@ module.exports = class AWSService extends Mappable {
       }));
   }
 
+  delete() {
+    const ecs = new AWS.ECS();
+    return ecs.deleteService({
+      'cluster': this.clusterName,
+      'service': this.name
+    })
+      .promise();
+  }
+
   update(params = {}) {
     const ecs = new AWS.ECS();
     return ecs.updateService(_.assign({
       'cluster': this.clusterName,
       'service': this.name
     }, params))
-      .promise();
+      .promise()
+      .then(() => this);
   }
 
   static find(cluster, filter = {}) {
