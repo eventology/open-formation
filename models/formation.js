@@ -253,7 +253,9 @@ module.exports = class Formation {
           'serviceName': name,
           'taskDefinition': taskDef.arn
         }));
-      });
+      })
+      .then(() => AWSService.find(this.cluster, {name}))
+      .then(results => _.head(results));
   }
 
 };

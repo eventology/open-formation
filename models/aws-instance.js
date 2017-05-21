@@ -211,7 +211,7 @@ module.exports = class AWSInstance extends Instance {
   associateUrl(url) {
     return AWSElasticIp.byUrl(url)
       .then(elasticIp => elasticIp.associate(this.id))
-      .then(instance => new Promise(r => setTimeout(() => r(instance), 5000)))
+      .then(instance => new Promise(r => setTimeout(() => r(instance), 10000)))
       .then(() => this.constructor.byId(this.id));
   }
 

@@ -18,8 +18,9 @@ module.exports = (vorpal, print, formation) => {
           print(_.map(machines, machine => _.assign({}, machine, {
             'instanceExists': !!instances[machine.name],
             'instanceType': _.get(instances[machine.name], 'type'),
-            'instanceIp': _.get(instances[machine.name], 'ip')
-          })), ['name', {
+            'instanceIp': _.get(instances[machine.name], 'ip'),
+            'instanceId': _.get(instances[machine.name], 'id')
+          })), ['instanceId', 'name', {
             'name': 'type',
             'colorize': true
           }, {

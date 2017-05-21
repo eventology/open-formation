@@ -9,6 +9,7 @@ const URL = require('url');
 const uuid = require('uuid');
 const chalk = require('chalk');
 const NodeSSH = new require('node-ssh');
+const prettyjson = require('prettyjson');
 
 const SSH_OPTS = `-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no`;
 
@@ -103,6 +104,8 @@ function ssh(options = {}) {
     .then(result => {
       disconnect(_ssh);
       if (!_.isArray(commands)) return _.trim(result.pop().stdout, '\n');
+      const stderr = prettyjson.render(_.map(result, 'stderr'));
+      console.log(chalk.yellow(stderr));
       return _(result)
         .map('stdout')
         .map(stdout => _.trim(stdout, '\n'))
