@@ -11,7 +11,7 @@ module.exports = (vorpal, print, formation) => {
     .command('services [cluster]')
     .description('List services for a cluser')
     .action(function (args) {
-      return AWSService.load(args.cluster || formation.cluster)
+      return AWSService.load(args.cluster)
         .then(services => {
           print(services, [{
             'name': 'clusterName',
@@ -58,14 +58,14 @@ module.exports = (vorpal, print, formation) => {
     });
 
   vorpal
-    .command('delete <service>')
+    .command('delete <service> <cluster>')
     .description('Create a new deployment version for a service and push the latest task configuration.')
     .action(function (args) {
-      return AWSService.find(formation.cluster, {'name': args.service})
+      return AWSService.find(args.cluster, {'name': args.service})
         .then(services => {
           if (services.length !== 1) throw new Error('Invalid number of services found');
           const service = _.head(services);
-          return confirm(chalk.magenta(`Terminating service "${args.service}" in cluster "${formation.cluster}"`))
+          return confirm(chalk.magenta(`Terminating service "${args.service}" in cluster "${args.cluster}"`))
             .then(() => service.delete());
         });
     });

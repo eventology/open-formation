@@ -38,7 +38,6 @@ module.exports = class Formation {
       .keyBy('family')
       .value();
 
-    this.cluster = template.cluster;
     this.services = template.services;
   }
 
@@ -234,11 +233,13 @@ module.exports = class Formation {
   }
 
   versionService(name) {
-    const definition = _.get(this, `services[${name}].taskDefinition`);
-    if (!definition) throw new Error(`Unable to find task definition "${name}". Task definitions should match service names.`);
+    const service = _.get(this, `services[${name}]`);
+    if (!service) throw new Error(`Unable to find service named ${name}`);
+    const definition = service.taskDefinition;
+    if (!definition) throw new Error(`Unable to find task definition for service ${name}`);
     return Promise.all([
       AWSService.registerTaskDefinition(definition),
-      AWSService.find(this.cluster, {name})
+      AWSService.find(service.cluster, {name})
     ])
       .then(results => {
         const taskDef = results[0];
@@ -249,12 +250,12 @@ module.exports = class Formation {
         return service ? service.update(_.assign(serviceDef, {
           'taskDefinition': taskDef.arn
         })) : AWSService.create(_.assign(serviceDef, {
-          'cluster': this.cluster,
+          'cluster': service.cluster,
           'serviceName': name,
           'taskDefinition': taskDef.arn
         }));
       })
-      .then(() => AWSService.find(this.cluster, {name}))
+      .then(() => AWSService.find(service.cluster, {name}))
       .then(results => _.head(results));
   }
 

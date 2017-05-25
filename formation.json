@@ -1,5 +1,4 @@
 {
-  "cluster": "ofn",
   "config": {
     "imageName": "ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-20170414",
     "type": "t2.small",
@@ -85,6 +84,7 @@
   },
   "services": {
     "sshd": {
+      "cluster": "ofn",
       "desiredCount": 3,
       "taskDefinition": {
         "networkMode": "bridge",
