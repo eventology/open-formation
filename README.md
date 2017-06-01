@@ -10,10 +10,6 @@ You must be logged into an account with access to the `@cosmunity` package scope
 ## Running
 open-formation looks for a file in the cwd named `formation.json`.
 
-TODO: 
-YAML support - #5
-Formation documentation - #4
-
 ## Commands
 
 `ofn`
@@ -41,3 +37,8 @@ Formation documentation - #4
 - Full helptext
 
 ![image](/uploads/c06e65f9f0df6b560b89164e662fa3d2/image.png)
+
+
+## TODO
+  * yaml support - #5
+  * formation.json documentation - #4
