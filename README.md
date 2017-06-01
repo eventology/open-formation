@@ -36,7 +36,7 @@ open-formation looks for a file in the cwd named `formation.json`.
 `ofn help`
 - Full helptext
 
-![image](/uploads/c06e65f9f0df6b560b89164e662fa3d2/image.png)
+![image](/uploads/fc34c519f6ab7fc09aedf4dcb776919e/image.png)
 
 
 ## TODO
