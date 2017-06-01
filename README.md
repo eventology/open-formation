@@ -16,8 +16,8 @@ open-formation looks for a file in the cwd named `formation.json`.
 - Enter the interactive ofn shell.
 - All below commands can be executed here without typing ofn.
 
-`ofn version dev-api`
-- This command deploys the ECS task and service configuration named `dev-api`.
+`ofn version <service-name>`
+- This command deploys the specified ECS service.
 - ECS will deploy a new version of the service and handle any scaling operations automatically.
 - Instances will be automatically registered in the target load balancer.
 - Removed instances will be drained before termination.
