@@ -25,7 +25,7 @@ open-formation looks for a file in the cwd named `formation.json`.
 `ofn status`
 - Print status information about the current formation.
 
-![image](/uploads/14b1b0953bc7658e11b899185d18d4bd/image.png)
+![image](/uploads/636e3d157dbc85693c379649080a437c/image.png)
 
 `ofn deploy [-y]`
 - Deploy the machines in the current formation.
