@@ -6,6 +6,8 @@ const chalk = require('chalk');
 const Instance = require('./aws-instance');
 const Evaluator = require('./evaluator');
 const AWSService = require('./aws-service');
+const mime = require('mime-types');
+const yaml = require('js-yaml');
 
 const optionRegex = /^__[a-zA-Z0-9]+__$/;
 
@@ -66,17 +68,22 @@ module.exports = class Formation {
   /**
    * Static constructor, returns a promise
    *
-   * Cleanup needed, not sure if i want to keep aws resources separate
-   *
-   * TODO: Refactor formation.json parsing, add script phases during machine
-   * boot
+   * Supports JSON and YAML formats
    **/
   static load(path) {
+    const mimes = ['application/json', 'text/yaml'];
+    const mimetype = mime.lookup(path);
+    if (mimes.indexOf(mimetype) === -1) return Promise.reject(new Error(`Invalid mime type: "${mimetype}"`));
     return new Promise((rs, rj) => fs.readFile(path, (err, data) => {
-      if (err) rj(err);
-      else rs(data.toString());
+      if (err) return rj(err);
+      if (mimetype === mimes[0]) {
+        rs(JSON.parse(data.toString()));
+      } else if (mimetype === mimes[1]) {
+        rs(yaml.safeLoad(data.toString()));
+      } else {
+        rj(new Error(`Unknown error`));
+      }
     }))
-      .then(data => JSON.parse(data))
       .then(template => new Formation(template));
   }
 
