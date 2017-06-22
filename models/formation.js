@@ -79,17 +79,14 @@ module.exports = class Formation {
     if (mimes.indexOf(mimetype) === -1) return Promise.reject(new Error(`Invalid mime type: "${mimetype}"`));
     return new Promise((rs, rj) => fs.readFile(path, (err, data) => {
       if (err) return rj(err);
-      const string = data.toString();
-
       if (mimetype === mimes[0]) {
-        rs(data.toString());
+        rs(JSON.parse(data.toString()));
       } else if (mimetype === mimes[1]) {
         rs(yaml.safeLoad(data.toString()));
       } else {
         rj(new Error(`Unknown error`));
       }
     }))
-      .then(data => JSON.parse(data))
       .then(template => new Formation(template));
   }
 
