@@ -68,10 +68,7 @@ module.exports = class Formation {
   /**
    * Static constructor, returns a promise
    *
-   * Cleanup needed, not sure if i want to keep aws resources separate
-   *
-   * TODO: Refactor formation.json parsing, add script phases during machine
-   * boot
+   * Supports JSON and YAML formats
    **/
   static load(path) {
     const mimes = ['application/json', 'text/yaml'];
