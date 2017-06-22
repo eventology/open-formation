@@ -11,10 +11,16 @@ const _ = require('lodash');
 const {pwd} = require('./utils');
 const path = require('path');
 const chalk = require('chalk');
+const fs = require('fs');
 
-console.log(chalk.green(`Loading formation...`));
-
-const template = path.join(pwd(), 'formation.json');
+const template = _.chain([
+    'formation.yaml',
+    'formation.yml',
+    'formation.json'
+  ])
+  .map(name => path.join(pwd(), name))
+  .find(filepath => fs.existsSync(filepath))
+  .value();
 
 Formation.load(template)
   .then(formation => {
