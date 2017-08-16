@@ -29,7 +29,7 @@ module.exports = class Formation {
         _.chain([_machines])
           .flatten()
           .map((machine, index, machines) => _.assign({}, template.config, machine, {
-            'name': `${name}${machines.length > 1 ? index : ''}`
+            'name': `${name}${index}`
           }))
           .value())
       .flatten()
