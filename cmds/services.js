@@ -59,7 +59,7 @@ module.exports = (vorpal, print, formation) => {
 
   vorpal
     .command('delete <service> <cluster>')
-    .description('Create a new deployment version for a service and push the latest task configuration.')
+    .description('Delete a given service from a cluster.')
     .action(function (args) {
       return AWSService.find(args.cluster, {'name': args.service})
         .then(services => {
