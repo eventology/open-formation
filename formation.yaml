@@ -5,38 +5,47 @@ config:
   region: us-east-1
   IamInstanceProfile:
     Arn: arn:aws:iam::712623285669:instance-profile/ec2-ecs-role
+
 machines:
+  single_machine:
+    - zone: us-east-1e
+      BlockDeviceMappings:
+      - DeviceName: "/dev/sda1"
+        Ebs:
+          VolumeSize: 50
+          VolumeType: gp2
   formation:
-  - zone: us-east-1e
-    BlockDeviceMappings:
-    - DeviceName: "/dev/sda1"
-      Ebs:
-        VolumeSize: 50
-        VolumeType: gp2
-    - DeviceName: "/dev/sdf"
-      Ebs:
-        VolumeSize: 50
-        VolumeType: gp2
-  - zone: us-east-1a
-    BlockDeviceMappings:
-    - DeviceName: "/dev/sda1"
-      Ebs:
-        VolumeSize: 50
-        VolumeType: gp2
-    - DeviceName: "/dev/sdf"
-      Ebs:
-        VolumeSize: 50
-        VolumeType: gp2
-  - zone: us-east-1b
-    BlockDeviceMappings:
-    - DeviceName: "/dev/sda1"
-      Ebs:
-        VolumeSize: 50
-        VolumeType: gp2
-    - DeviceName: "/dev/sdf"
-      Ebs:
-        VolumeSize: 50
-        VolumeType: gp2
+    - zone: us-east-1e
+      BlockDeviceMappings:
+      - DeviceName: "/dev/sda1"
+        Ebs:
+          VolumeSize: 50
+          VolumeType: gp2
+      - DeviceName: "/dev/sdf"
+        Ebs:
+          VolumeSize: 50
+          VolumeType: gp2
+    - zone: us-east-1a
+      BlockDeviceMappings:
+      - DeviceName: "/dev/sda1"
+        Ebs:
+          VolumeSize: 50
+          VolumeType: gp2
+      - DeviceName: "/dev/sdf"
+        Ebs:
+          VolumeSize: 50
+          VolumeType: gp2
+    - zone: us-east-1b
+      BlockDeviceMappings:
+      - DeviceName: "/dev/sda1"
+        Ebs:
+          VolumeSize: 50
+          VolumeType: gp2
+      - DeviceName: "/dev/sdf"
+        Ebs:
+          VolumeSize: 50
+          VolumeType: gp2
+
 scripts:
   default:
   - export DEBIAN_FRONTEND=noninteractive
