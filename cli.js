@@ -22,8 +22,16 @@ const template = _.chain([
   .find(filepath => fs.existsSync(filepath))
   .value();
 
+const pems = _.chain(fs.readdirSync(pwd()))
+  .filter(filename => filename.indexOf('.pem') !== -1)
+  .value();
+
 Formation.load(template)
   .then(formation => {
+
+    if (formation.machines.length && !pems.length) {
+      console.log(chalk.red(`Warning: No private key found in working directory`));
+    }
 
     /**
      * Load the commands
