@@ -252,9 +252,9 @@ module.exports = class Formation {
         const taskDef = results[0];
         const services = results[1];
         if (services.length > 1) throw new Error('Invalid number of services found');
-        const service = _.head(services);
+        const existingService = _.head(services);
         const serviceDef = this.services[name];
-        return service ? service.update(_.assign(serviceDef, {
+        return existingService ? existingService.update(_.assign(serviceDef, {
           'taskDefinition': taskDef.arn
         })) : AWSService.create(_.assign(serviceDef, {
           'cluster': service.cluster,
