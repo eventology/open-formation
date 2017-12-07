@@ -98,7 +98,12 @@ function ssh(options = {}) {
       _ssh = __ssh;
       return Promise.map(cmds, _cmd => {
         console.log(chalk.cyan(`${name}: ${_cmd}`));
-        return _ssh.execCommand(_cmd);
+        return _ssh.execCommand(_cmd)
+          .then(result => {
+            if (result.code !== 0) throw new Error(result.stderr || result.stdout);
+            // Wait 100 ms between commands
+            return new Promise(rs => setTimeout(() => rs(result), 100));
+          });
       });
     })
     .then(result => {
