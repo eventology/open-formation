@@ -36,7 +36,10 @@ module.exports = (vorpal, print, formation) => {
           return confirm(chalk.magenta(`Running "${script}" on ${runInstances.length} instances`));
         })
         .then(() => formation.run(script, names))
-        .log()
+        .then(arg => {
+          console.log(arg);
+          return arg;
+        })
         .then(() => vorpal.show())
         .catch(err => {
           console.log(chalk.red('Aborting'), err);

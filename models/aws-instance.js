@@ -141,7 +141,10 @@ module.exports = class AWSInstance extends Instance {
         instance.region = options.region;
         return instance;
       })
-      .log(instance => console.log(chalk.magenta(`${instance.type} instance ${instance.id} created in ${instance.region}`)))
+      .then(instance => {
+        console.log(chalk.magenta(`${instance.type} instance ${instance.id} created in ${instance.region}`));
+        return instances;
+      })
       .then(instance => instance.waitForRunning())
       .then(instance => instance.setTags(options.tags))
       .then(instance => {
@@ -274,7 +277,10 @@ module.exports = class AWSInstance extends Instance {
       'InstanceIds': [this.id]
     })
       .promise()
-      .log(instance => console.log(chalk.magenta(`${this.type} instance ${this.id} terminated in ${this.region}`)))
+      .then(instance => {
+        console.log(chalk.magenta(`${this.type} instance ${this.id} terminated in ${this.region}`));
+        return instance;
+      })
       .then(res => {
         const instanceIds = _.chain(res)
           .get('TerminatingInstances')

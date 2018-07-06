@@ -35,9 +35,10 @@ module.exports = (vorpal, print, formation) => {
           return formation.createInstances();
         })
         .then(() => formation.instances())
-        .log(instances => {
+        .then(instances => {
           console.log(chalk.magenta(`Successfully deployed ${_.keys(instances).length} instances`));
           print(_.values(instances), ['id', 'name', 'ip', 'type', 'region']);
+          return instances;
         })
         .then(() => vorpal.show())
         .catch(err => {
