@@ -3,6 +3,7 @@
   "version": "0.0.14",
   "description": "A templating engine for building infrastructure orchestration",
   "main": "index.js",
+  "repository": "https://github.com/eventology/open-formation",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
