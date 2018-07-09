@@ -25,7 +25,7 @@ open-formation looks for a file in the cwd named `formation.json`.
 `ofn status`
 - Print status information about the current formation.
 
-![image](/uploads/636e3d157dbc85693c379649080a437c/image.png)
+![image](https://user-images.githubusercontent.com/631020/42429341-0e60103e-82fe-11e8-8708-d4c8a957129b.png)
 
 `ofn deploy [-y]`
 - Deploy the machines in the current formation.
@@ -36,9 +36,8 @@ open-formation looks for a file in the cwd named `formation.json`.
 `ofn help`
 - Full helptext
 
-![image](/uploads/fc34c519f6ab7fc09aedf4dcb776919e/image.png)
+![image](https://user-images.githubusercontent.com/631020/42429355-1f0a5a8e-82fe-11e8-9031-91dcb616d11d.png)
 
 
 ## TODO
-  * yaml support - #5
-  * formation.json documentation - #4
+  * formation.json documentation - #1
