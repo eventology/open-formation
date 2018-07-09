@@ -1,6 +1,6 @@
 {
   "name": "@cosmunity/open-formation",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "description": "A templating engine for building infrastructure orchestration",
   "main": "index.js",
   "repository": "https://github.com/eventology/open-formation",
