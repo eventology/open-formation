@@ -1,5 +1,6 @@
 [![CircleCI](https://circleci.com/gh/eventology/open-formation.svg?style=shield)](https://circleci.com/gh/eventology/open-formation)
 [![npm](https://img.shields.io/npm/v/@cosmunity/open-formation.svg)](https://www.npmjs.com/package/@cosmunity/open-formation)
+[![npm](https://img.shields.io/npm/l/express.svg)](https://github.com/eventology/open-formation/blob/master/LICENSE)
 
 # open-formation
 A cli tool for deploying AWS resources using a JSON file.
