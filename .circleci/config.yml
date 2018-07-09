@@ -1,0 +1,16 @@
+install: &Install |
+  npm install
+
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/node:10
+    steps:
+      - checkout
+      - run: *Install
+workflows:
+  version: 2
+  build_all:
+    jobs:
+      - build
