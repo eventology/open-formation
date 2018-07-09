@@ -40,7 +40,3 @@ open-formation looks for a file in the cwd named `formation.json`.
 - Full helptext
 
 ![image](https://user-images.githubusercontent.com/631020/42429355-1f0a5a8e-82fe-11e8-9031-91dcb616d11d.png)
-
-
-## TODO
-  * formation.json documentation - #1
