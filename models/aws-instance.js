@@ -143,7 +143,7 @@ module.exports = class AWSInstance extends Instance {
       })
       .then(instance => {
         console.log(chalk.magenta(`${instance.type} instance ${instance.id} created in ${instance.region}`));
-        return instances;
+        return instance;
       })
       .then(instance => instance.waitForRunning())
       .then(instance => instance.setTags(options.tags))
