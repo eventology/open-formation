@@ -129,7 +129,10 @@ module.exports = class Formation {
           const params = _.omitBy(machine, (value, key) => optionRegex.test(key));
 
           return Instance.create(params)
-            .log(i => console.log(chalk.green(`Created instance "${machine.name}", "${i.id}"`)));
+            .then(instance => {
+              console.log(chalk.green(`Created instance "${machine.name}", "${instance.id}"`));
+              return instance;
+            });
         });
     });
 
