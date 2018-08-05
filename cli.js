@@ -13,11 +13,13 @@ const path = require('path');
 const chalk = require('chalk');
 const fs = require('fs');
 
-const template = _.chain([
-    'formation.yaml',
-    'formation.yml',
-    'formation.json'
-  ])
+const FORMATION_FILENAMES = [
+  'formation.yaml',
+  'formation.yml',
+  'formation.json'
+];
+
+const template = _.chain(FORMATION_FILENAMES)
   .map(name => path.join(pwd(), name))
   .find(filepath => fs.existsSync(filepath))
   .value();
@@ -46,7 +48,20 @@ Formation.load(template)
       .show()
       .parse(process.argv);
   })
-  .catch(err => console.log('Uncaught boot error', err));
+  .catch(err => {
+    console.log(`
+${chalk.red(`I couldn't load a formation file from your current directory.`)}
+
+Looked for:
+  ${_.join(FORMATION_FILENAMES, '\n  ')}
+`);
+    console.log(chalk.magenta('Displaying help:'))
+    /**
+     * Mock the commands
+     **/
+    require('./cmds')(vorpal, print, {});
+    vorpal.exec('help');
+  })  ;
 
 /**
  * A function to print the contents of `data` in a table with headers defined
