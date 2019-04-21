@@ -19,7 +19,7 @@
     "inquirer-confirm": "^0.2.2",
     "js-yaml": "^3.12.0",
     "lodash": "^4.17.10",
-    "mime-types": "^2.1.18",
+    "mime-types": "^2.1.24",
     "node-ssh": "^5.1.2",
     "not-index": "^1.0.0",
     "prettyjson": "^1.2.1",
