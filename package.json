@@ -14,7 +14,7 @@
   "license": "MIT",
   "dependencies": {
     "aws-sdk": "^2.276.1",
-    "chalk": "^2.4.1",
+    "chalk": "^3.0.0",
     "cliff": "^0.1.10",
     "inquirer-confirm": "^0.2.2",
     "js-yaml": "^3.12.0",
