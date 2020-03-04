@@ -24,7 +24,7 @@
     "not-index": "^1.0.0",
     "prettyjson": "^1.2.1",
     "text-table": "^0.2.0",
-    "uuid": "^3.3.2",
+    "uuid": "^7.0.2",
     "vorpal": "^1.12.0"
   }
 }
